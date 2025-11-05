@@ -11,6 +11,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Anchor, FileText, TrendingDown, Euro, DollarSign, BarChart3 } from "lucide-react";
 import { CIIRatingDisplay } from "@/components/CIIRatingDisplay";
 import { ComplianceBadge } from "@/components/ComplianceBadge";
+import { GHGIntensityChart } from "@/components/GHGIntensityChart";
 import type { ShipInfo } from "@shared/schema";
 
 interface EEDIResult {
@@ -169,6 +170,8 @@ export default function Calculator() {
 
           <TabsContent value="summary">
             <div className="space-y-6">
+              <GHGIntensityChart attainedIntensity={fuelEUResult?.intensity} />
+              
               <Card>
                 <CardHeader>
                   <CardTitle>Compliance Summary</CardTitle>
