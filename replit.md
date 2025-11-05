@@ -39,6 +39,9 @@ Preferred communication style: Simple, everyday language.
 - CII rating system with A-E grades based on attained vs required values
 - FuelEU Maritime GHG intensity calculations with yearly reduction targets
 - EU ETS allowance calculations with progressive coverage percentages
+- IMO GFI (GHG Fuel Intensity) two-tier pricing system ($100 Tier 1, $380 Tier 2 per tCO₂eq) for 2028-2050
+- Shipbuilding cost parametric estimation based on DWT and vessel type ($650-$1200 per DWT)
+- Fuel cost calculations using SFOC method (175-185 g/kWh main, 220 g/kWh auxiliary)
 - CO2 emission factors for various fuel types (HFO, MDO, LNG, Methanol, etc.)
 
 ### Backend Architecture
@@ -68,8 +71,9 @@ Preferred communication style: Simple, everyday language.
 
 **Schema Structure**:
 - Ship information (name, type, deadweight, gross tonnage, build year)
-- Calculator-specific inputs (EEDI, EEXI, CII, FuelEU, EU ETS)
+- Calculator-specific inputs (EEDI, EEXI, CII, FuelEU, EU ETS, IMO GFI, Shipbuilding Cost, Fuel Cost)
 - Fuel type configurations with CO2 conversion factors
+- Cost breakdown models for regulatory compliance (Tier 1/2 penalties, shipbuilding, fuel costs)
 
 **Migration Strategy**: Drizzle Kit for schema migrations to `./migrations` directory
 
