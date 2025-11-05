@@ -5,14 +5,18 @@ import { EEDICalculator } from "@/components/EEDICalculator";
 import { CIICalculator } from "@/components/CIICalculator";
 import { FuelEUCalculator } from "@/components/FuelEUCalculator";
 import { EUETSCalculator } from "@/components/EUETSCalculator";
+import { IMOGFICalculator } from "@/components/IMOGFICalculator";
+import { ShipbuildingCostCalculator } from "@/components/ShipbuildingCostCalculator";
+import { FuelCostCalculator } from "@/components/FuelCostCalculator";
 import { CostSummaryCard } from "@/components/CostSummaryCard";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Anchor, FileText, TrendingDown, Euro, DollarSign, BarChart3 } from "lucide-react";
+import { Anchor, FileText, TrendingDown, Euro, DollarSign, BarChart3, Ship, Fuel, Globe } from "lucide-react";
 import { CIIRatingDisplay } from "@/components/CIIRatingDisplay";
 import { ComplianceBadge } from "@/components/ComplianceBadge";
 import { GHGIntensityChart } from "@/components/GHGIntensityChart";
 import type { ShipInfo } from "@shared/schema";
+import { calculateIMOGFI, calculateFuelCost } from "@/lib/calculations";
 
 interface EEDIResult {
   attained: number;
@@ -39,6 +43,9 @@ interface EUETSResult {
   coverage: number;
 }
 
+type IMOGFIResult = ReturnType<typeof calculateIMOGFI>;
+type FuelCostResult = ReturnType<typeof calculateFuelCost>;
+
 export default function Calculator() {
   const [shipInfo, setShipInfo] = useState<ShipInfo | null>(null);
   const [activeTab, setActiveTab] = useState("ship-info");
@@ -46,6 +53,9 @@ export default function Calculator() {
   const [ciiResult, setCiiResult] = useState<CIIResult | null>(null);
   const [fuelEUResult, setFuelEUResult] = useState<FuelEUResult | null>(null);
   const [euETSResult, setEuETSResult] = useState<EUETSResult | null>(null);
+  const [imoGFIResult, setImoGFIResult] = useState<IMOGFIResult | null>(null);
+  const [shipbuildingCost, setShipbuildingCost] = useState<number>(0);
+  const [fuelCostResult, setFuelCostResult] = useState<FuelCostResult | null>(null);
 
   const handleShipInfoSubmit = (data: ShipInfo) => {
     setShipInfo(data);
@@ -73,7 +83,7 @@ export default function Calculator() {
 
       <main className="container mx-auto px-4 py-8 max-w-7xl">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-3 lg:grid-cols-7 gap-2">
+          <TabsList className="grid w-full grid-cols-3 lg:grid-cols-10 gap-2">
             <TabsTrigger value="ship-info" className="gap-2" data-testid="tab-ship-info">
               <Anchor className="h-4 w-4" />
               <span className="hidden sm:inline">Ship Info</span>
@@ -95,6 +105,14 @@ export default function Calculator() {
             <TabsTrigger value="euets" className="gap-2" disabled={!shipInfo} data-testid="tab-euets">
               <DollarSign className="h-4 w-4" />
               <span className="hidden sm:inline">EU ETS</span>
+            </TabsTrigger>
+            <TabsTrigger value="imogfi" className="gap-2" disabled={!shipInfo} data-testid="tab-imogfi">
+              <Globe className="h-4 w-4" />
+              <span className="hidden sm:inline">IMO GFI</span>
+            </TabsTrigger>
+            <TabsTrigger value="costs" className="gap-2" disabled={!shipInfo} data-testid="tab-costs">
+              <Ship className="h-4 w-4" />
+              <span className="hidden sm:inline">Costs</span>
             </TabsTrigger>
             <TabsTrigger value="summary" className="gap-2" disabled={!shipInfo} data-testid="tab-summary">
               <BarChart3 className="h-4 w-4" />
@@ -166,6 +184,19 @@ export default function Calculator() {
 
           <TabsContent value="euets">
             <EUETSCalculator onResultCalculated={setEuETSResult} />
+          </TabsContent>
+
+          <TabsContent value="imogfi">
+            <IMOGFICalculator onCalculate={setImoGFIResult} />
+          </TabsContent>
+
+          <TabsContent value="costs">
+            <div className="grid gap-6">
+              {shipInfo && (
+                <ShipbuildingCostCalculator onCalculate={setShipbuildingCost} />
+              )}
+              <FuelCostCalculator onCalculate={setFuelCostResult} />
+            </div>
           </TabsContent>
 
           <TabsContent value="summary">
@@ -306,17 +337,17 @@ export default function Calculator() {
                 </CardContent>
               </Card>
 
-              {(euETSResult || fuelEUResult || ciiResult) && (
+              {(euETSResult || fuelEUResult || ciiResult || imoGFIResult || shipbuildingCost || fuelCostResult) && (
                 <CostSummaryCard
                   shipName={shipInfo?.shipName}
                   complianceYear={2025}
-                  totalFuelEnergy={0}
+                  totalFuelEnergy={fuelCostResult ? fuelCostResult.totalConsumption * 41000 : 0}
                   costs={{
-                    shipbuildingCosts: 0,
-                    fuelCosts: 0,
-                    imoGFITier1Costs: 0,
-                    imoGFITier2Costs: 0,
-                    imoGFIRewardCosts: 0,
+                    shipbuildingCosts: shipbuildingCost,
+                    fuelCosts: fuelCostResult ? fuelCostResult.totalCost : 0,
+                    imoGFITier1Costs: imoGFIResult ? imoGFIResult.tier1Cost : 0,
+                    imoGFITier2Costs: imoGFIResult ? imoGFIResult.tier2Cost : 0,
+                    imoGFIRewardCosts: imoGFIResult ? imoGFIResult.rewardCost : 0,
                     ciiCosts: 0,
                     fuelEUMaritimeCosts: fuelEUResult ? fuelEUResult.penalty : 0,
                     otherCosts: euETSResult ? euETSResult.cost : 0,

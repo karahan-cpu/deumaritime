@@ -77,11 +77,26 @@ export const euETSInputSchema = z.object({
   year: z.number().min(2024).max(2026),
 });
 
-export const gfiInputSchema = z.object({
-  annualFuelConsumption: z.number().positive(),
-  distanceTraveled: z.number().positive(),
+export const imoGFIInputSchema = z.object({
+  totalEnergyUsed: z.number().positive("Total energy must be positive"),
+  ghgEmissions: z.number().positive("GHG emissions must be positive"),
+  year: z.number().min(2028).max(2050),
+});
+
+export const shipbuildingCostInputSchema = z.object({
+  deadweight: z.number().positive("Deadweight must be positive"),
+  grossTonnage: z.number().positive("Gross tonnage must be positive"),
+  shipType: z.enum(shipTypes),
+  isNewBuild: z.boolean(),
+});
+
+export const fuelCostInputSchema = z.object({
+  mainEnginePower: z.number().positive("Main engine power must be positive"),
+  auxiliaryPower: z.number().positive("Auxiliary power must be positive"),
+  daysAtSea: z.number().positive("Days at sea must be positive"),
+  daysInPort: z.number().nonnegative("Days in port must be non-negative"),
   fuelType: z.string(),
-  year: z.number().min(2025).max(2050),
+  fuelPrice: z.number().positive("Fuel price must be positive"),
 });
 
 export type ShipInfo = z.infer<typeof shipInfoSchema>;
@@ -90,4 +105,6 @@ export type EEXIInput = z.infer<typeof eexiInputSchema>;
 export type CIIInput = z.infer<typeof ciiInputSchema>;
 export type FuelEUInput = z.infer<typeof fuelEUInputSchema>;
 export type EUETSInput = z.infer<typeof euETSInputSchema>;
-export type GFIInput = z.infer<typeof gfiInputSchema>;
+export type IMOGFIInput = z.infer<typeof imoGFIInputSchema>;
+export type ShipbuildingCostInput = z.infer<typeof shipbuildingCostInputSchema>;
+export type FuelCostInput = z.infer<typeof fuelCostInputSchema>;
