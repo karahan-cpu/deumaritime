@@ -310,26 +310,17 @@ export default function Calculator() {
                 <CostSummaryCard
                   shipName={shipInfo?.shipName}
                   complianceYear={2025}
-                  costs={[
-                    ...(ciiResult ? [{ 
-                      label: "CII Compliance Costs", 
-                      amount: 0,
-                      description: `${ciiResult.rating} Rating - ${ciiResult.rating === 'A' || ciiResult.rating === 'B' || ciiResult.rating === 'C' ? 'No penalty' : 'Corrective action required'}`,
-                      isHighlight: ciiResult.rating === 'D' || ciiResult.rating === 'E'
-                    }] : []),
-                    ...(fuelEUResult ? [{ 
-                      label: "FuelEU Maritime Penalty", 
-                      amount: fuelEUResult.penalty, 
-                      description: fuelEUResult.compliance ? "Compliant - no penalty" : `Non-compliant: ${fuelEUResult.intensity.toFixed(2)} gCO₂eq/MJ vs ${fuelEUResult.limit.toFixed(2)} limit`,
-                      isHighlight: !fuelEUResult.compliance
-                    }] : []),
-                    ...(euETSResult ? [{ 
-                      label: "EU ETS Allowances", 
-                      amount: euETSResult.cost, 
-                      description: `${euETSResult.allowancesNeeded.toLocaleString(undefined, { maximumFractionDigits: 0 })} tonnes CO₂ at ${(euETSResult.coverage * 100).toFixed(0)}% coverage`,
-                      isHighlight: true
-                    }] : []),
-                  ]}
+                  totalFuelEnergy={0}
+                  costs={{
+                    shipbuildingCosts: 0,
+                    fuelCosts: 0,
+                    imoGFITier1Costs: 0,
+                    imoGFITier2Costs: 0,
+                    imoGFIRewardCosts: 0,
+                    ciiCosts: 0,
+                    fuelEUMaritimeCosts: fuelEUResult ? fuelEUResult.penalty : 0,
+                    otherCosts: euETSResult ? euETSResult.cost : 0,
+                  }}
                 />
               )}
             </div>
