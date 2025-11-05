@@ -1,0 +1,155 @@
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { ciiInputSchema, fuelTypes, type CIIInput } from "@shared/schema";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { TrendingDown } from "lucide-react";
+import { useState } from "react";
+import { calculateCII, calculateRequiredCII, getCIIRating } from "@/lib/calculations";
+import { CIIRatingDisplay } from "./CIIRatingDisplay";
+
+interface CIICalculatorProps {
+  shipType: string;
+}
+
+export function CIICalculator({ shipType }: CIICalculatorProps) {
+  const [result, setResult] = useState<{
+    attained: number;
+    required: number;
+    rating: "A" | "B" | "C" | "D" | "E";
+  } | null>(null);
+
+  const form = useForm<CIIInput>({
+    resolver: zodResolver(ciiInputSchema),
+    defaultValues: {
+      annualFuelConsumption: 0,
+      distanceTraveled: 0,
+      capacity: 0,
+      fuelType: "HFO",
+      year: new Date().getFullYear(),
+    },
+  });
+
+  const handleCalculate = (data: CIIInput) => {
+    const attained = calculateCII(
+      data.annualFuelConsumption,
+      data.distanceTraveled,
+      data.capacity,
+      data.fuelType
+    );
+
+    const required = calculateRequiredCII(shipType, data.capacity, data.year);
+    const rating = getCIIRating(attained, required);
+
+    setResult({ attained, required, rating: rating as any });
+    console.log("CII calculated:", { attained, required, rating });
+  };
+
+  return (
+    <div className="space-y-6">
+      <Card data-testid="card-cii-calculator">
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-primary/10 rounded-lg">
+                <TrendingDown className="h-5 w-5 text-primary" />
+              </div>
+              <div>
+                <CardTitle>CII Calculator</CardTitle>
+                <CardDescription>Annual Carbon Intensity Indicator (A-E Rating)</CardDescription>
+              </div>
+            </div>
+            <Badge variant="secondary" className="text-xs uppercase">Annual Rating</Badge>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={form.handleSubmit(handleCalculate)} className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-2">
+                <Label htmlFor="annualFuelConsumption">Annual Fuel Consumption (tonnes)</Label>
+                <Input
+                  id="annualFuelConsumption"
+                  type="number"
+                  step="0.01"
+                  {...form.register("annualFuelConsumption", { valueAsNumber: true })}
+                  placeholder="e.g., 18500"
+                  data-testid="input-fuel-consumption"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="distanceTraveled">Distance Traveled (nautical miles)</Label>
+                <Input
+                  id="distanceTraveled"
+                  type="number"
+                  step="0.01"
+                  {...form.register("distanceTraveled", { valueAsNumber: true })}
+                  placeholder="e.g., 95000"
+                  data-testid="input-distance-traveled"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="capacity">Capacity (DWT)</Label>
+                <Input
+                  id="capacity"
+                  type="number"
+                  step="0.01"
+                  {...form.register("capacity", { valueAsNumber: true })}
+                  placeholder="e.g., 85000"
+                  data-testid="input-cii-capacity"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="fuelType">Fuel Type</Label>
+                <Select
+                  value={form.watch("fuelType")}
+                  onValueChange={(value) => form.setValue("fuelType", value)}
+                >
+                  <SelectTrigger data-testid="select-cii-fuel-type">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {fuelTypes.map((fuel) => (
+                      <SelectItem key={fuel.value} value={fuel.value}>
+                        {fuel.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="year">Reporting Year</Label>
+                <Input
+                  id="year"
+                  type="number"
+                  {...form.register("year", { valueAsNumber: true })}
+                  placeholder="e.g., 2025"
+                  data-testid="input-cii-year"
+                />
+              </div>
+            </div>
+
+            <Button type="submit" className="w-full" data-testid="button-calculate-cii">
+              Calculate CII Rating
+            </Button>
+          </form>
+        </CardContent>
+      </Card>
+
+      {result && (
+        <CIIRatingDisplay
+          rating={result.rating}
+          attainedCII={result.attained}
+          requiredCII={result.required}
+        />
+      )}
+    </div>
+  );
+}
