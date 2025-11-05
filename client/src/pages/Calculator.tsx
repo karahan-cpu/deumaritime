@@ -306,18 +306,28 @@ export default function Calculator() {
                 </CardContent>
               </Card>
 
-              {(euETSResult || fuelEUResult) && (
+              {(euETSResult || fuelEUResult || ciiResult) && (
                 <CostSummaryCard
+                  shipName={shipInfo?.shipName}
+                  complianceYear={2025}
                   costs={[
-                    ...(euETSResult ? [{ 
-                      label: "EU ETS Allowances", 
-                      amount: euETSResult.cost, 
-                      description: `${euETSResult.allowancesNeeded.toLocaleString(undefined, { maximumFractionDigits: 0 })} tonnes at ${(euETSResult.coverage * 100).toFixed(0)}% coverage` 
+                    ...(ciiResult ? [{ 
+                      label: "CII Compliance Costs", 
+                      amount: 0,
+                      description: `${ciiResult.rating} Rating - ${ciiResult.rating === 'A' || ciiResult.rating === 'B' || ciiResult.rating === 'C' ? 'No penalty' : 'Corrective action required'}`,
+                      isHighlight: ciiResult.rating === 'D' || ciiResult.rating === 'E'
                     }] : []),
                     ...(fuelEUResult ? [{ 
                       label: "FuelEU Maritime Penalty", 
                       amount: fuelEUResult.penalty, 
-                      description: fuelEUResult.compliance ? "Compliant - no penalty" : "Non-compliant penalty" 
+                      description: fuelEUResult.compliance ? "Compliant - no penalty" : `Non-compliant: ${fuelEUResult.intensity.toFixed(2)} gCO₂eq/MJ vs ${fuelEUResult.limit.toFixed(2)} limit`,
+                      isHighlight: !fuelEUResult.compliance
+                    }] : []),
+                    ...(euETSResult ? [{ 
+                      label: "EU ETS Allowances", 
+                      amount: euETSResult.cost, 
+                      description: `${euETSResult.allowancesNeeded.toLocaleString(undefined, { maximumFractionDigits: 0 })} tonnes CO₂ at ${(euETSResult.coverage * 100).toFixed(0)}% coverage`,
+                      isHighlight: true
                     }] : []),
                   ]}
                 />
