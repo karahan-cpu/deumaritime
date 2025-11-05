@@ -16,9 +16,10 @@ interface EEDICalculatorProps {
   shipType: string;
   isNewBuild: boolean;
   yearBuilt: number;
+  onResultCalculated?: (result: { attained: number; required: number; compliant: boolean }) => void;
 }
 
-export function EEDICalculator({ shipType, isNewBuild, yearBuilt }: EEDICalculatorProps) {
+export function EEDICalculator({ shipType, isNewBuild, yearBuilt, onResultCalculated }: EEDICalculatorProps) {
   const [result, setResult] = useState<{
     attained: number;
     required: number;
@@ -52,8 +53,12 @@ export function EEDICalculator({ shipType, isNewBuild, yearBuilt }: EEDICalculat
     const required = calculateRequiredEEDI(shipType, data.capacity, yearBuilt);
     const compliant = attained <= required;
 
-    setResult({ attained, required, compliant });
-    console.log("EEDI calculated:", { attained, required, compliant });
+    const calculatedResult = { attained, required, compliant };
+    setResult(calculatedResult);
+    if (onResultCalculated) {
+      onResultCalculated(calculatedResult);
+    }
+    console.log("EEDI calculated:", calculatedResult);
   };
 
   return (

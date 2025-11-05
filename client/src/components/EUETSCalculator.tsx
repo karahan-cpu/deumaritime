@@ -10,7 +10,11 @@ import { Euro } from "lucide-react";
 import { useState } from "react";
 import { calculateEUETS } from "@/lib/calculations";
 
-export function EUETSCalculator() {
+interface EUETSCalculatorProps {
+  onResultCalculated?: (result: { allowancesNeeded: number; cost: number; coverage: number }) => void;
+}
+
+export function EUETSCalculator({ onResultCalculated }: EUETSCalculatorProps = {}) {
   const [result, setResult] = useState<{
     allowancesNeeded: number;
     cost: number;
@@ -37,6 +41,9 @@ export function EUETSCalculator() {
       data.year
     );
     setResult(res);
+    if (onResultCalculated) {
+      onResultCalculated(res);
+    }
     console.log("EU ETS calculated:", res);
   };
 

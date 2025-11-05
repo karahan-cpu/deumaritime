@@ -9,11 +9,42 @@ import { CostSummaryCard } from "@/components/CostSummaryCard";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Anchor, FileText, TrendingDown, Euro, DollarSign, BarChart3 } from "lucide-react";
+import { CIIRatingDisplay } from "@/components/CIIRatingDisplay";
+import { ComplianceBadge } from "@/components/ComplianceBadge";
 import type { ShipInfo } from "@shared/schema";
+
+interface EEDIResult {
+  attained: number;
+  required: number;
+  compliant: boolean;
+}
+
+interface CIIResult {
+  attained: number;
+  required: number;
+  rating: "A" | "B" | "C" | "D" | "E";
+}
+
+interface FuelEUResult {
+  intensity: number;
+  limit: number;
+  penalty: number;
+  compliance: boolean;
+}
+
+interface EUETSResult {
+  allowancesNeeded: number;
+  cost: number;
+  coverage: number;
+}
 
 export default function Calculator() {
   const [shipInfo, setShipInfo] = useState<ShipInfo | null>(null);
   const [activeTab, setActiveTab] = useState("ship-info");
+  const [eediResult, setEediResult] = useState<EEDIResult | null>(null);
+  const [ciiResult, setCiiResult] = useState<CIIResult | null>(null);
+  const [fuelEUResult, setFuelEUResult] = useState<FuelEUResult | null>(null);
+  const [euETSResult, setEuETSResult] = useState<EUETSResult | null>(null);
 
   const handleShipInfoSubmit = (data: ShipInfo) => {
     setShipInfo(data);
@@ -119,20 +150,21 @@ export default function Calculator() {
                 shipType={shipInfo.shipType}
                 isNewBuild={shipInfo.isNewBuild}
                 yearBuilt={shipInfo.yearBuilt}
+                onResultCalculated={setEediResult}
               />
             </TabsContent>
           )}
 
           <TabsContent value="cii">
-            {shipInfo && <CIICalculator shipType={shipInfo.shipType} />}
+            {shipInfo && <CIICalculator shipType={shipInfo.shipType} onResultCalculated={setCiiResult} />}
           </TabsContent>
 
           <TabsContent value="fueleu">
-            <FuelEUCalculator />
+            <FuelEUCalculator onResultCalculated={setFuelEUResult} />
           </TabsContent>
 
           <TabsContent value="euets">
-            <EUETSCalculator />
+            <EUETSCalculator onResultCalculated={setEuETSResult} />
           </TabsContent>
 
           <TabsContent value="summary">
@@ -145,18 +177,148 @@ export default function Calculator() {
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <div className="text-center py-12 text-muted-foreground">
-                    Complete calculations in each tab to see the summary
+                  <div className="space-y-6">
+                    {/* Ship Info Summary */}
+                    {shipInfo && (
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pb-4 border-b">
+                        <div>
+                          <div className="text-sm text-muted-foreground">Ship Type</div>
+                          <div className="font-semibold">{shipInfo.shipType}</div>
+                        </div>
+                        <div>
+                          <div className="text-sm text-muted-foreground">Deadweight</div>
+                          <div className="font-semibold font-mono">{shipInfo.deadweight.toLocaleString()} DWT</div>
+                        </div>
+                        <div>
+                          <div className="text-sm text-muted-foreground">Gross Tonnage</div>
+                          <div className="font-semibold font-mono">{shipInfo.grossTonnage.toLocaleString()} GT</div>
+                        </div>
+                        <div>
+                          <div className="text-sm text-muted-foreground">Year Built</div>
+                          <div className="font-semibold font-mono">{shipInfo.yearBuilt}</div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* EEDI Results */}
+                    {eediResult && (
+                      <div className="space-y-2">
+                        <h3 className="font-semibold text-lg">EEDI (Energy Efficiency Design Index)</h3>
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                          <div>
+                            <div className="text-sm text-muted-foreground">Attained EEDI</div>
+                            <div className="text-xl font-bold font-mono">{eediResult.attained.toFixed(2)}</div>
+                            <div className="text-xs text-muted-foreground">gCO₂/tonne-nm</div>
+                          </div>
+                          <div>
+                            <div className="text-sm text-muted-foreground">Required EEDI</div>
+                            <div className="text-xl font-bold font-mono">{eediResult.required.toFixed(2)}</div>
+                            <div className="text-xs text-muted-foreground">gCO₂/tonne-nm</div>
+                          </div>
+                          <div>
+                            <div className="text-sm text-muted-foreground">Status</div>
+                            <div className="mt-1">
+                              <ComplianceBadge status={eediResult.compliant ? "compliant" : "non-compliant"} />
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* CII Results */}
+                    {ciiResult && (
+                      <div className="space-y-2">
+                        <h3 className="font-semibold text-lg">CII (Carbon Intensity Indicator)</h3>
+                        <CIIRatingDisplay
+                          rating={ciiResult.rating}
+                          attainedCII={ciiResult.attained}
+                          requiredCII={ciiResult.required}
+                        />
+                      </div>
+                    )}
+
+                    {/* FuelEU Results */}
+                    {fuelEUResult && (
+                      <div className="space-y-2">
+                        <h3 className="font-semibold text-lg">FuelEU Maritime</h3>
+                        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                          <div>
+                            <div className="text-sm text-muted-foreground">GHG Intensity</div>
+                            <div className="text-xl font-bold font-mono">{fuelEUResult.intensity.toFixed(2)}</div>
+                            <div className="text-xs text-muted-foreground">gCO₂eq/MJ</div>
+                          </div>
+                          <div>
+                            <div className="text-sm text-muted-foreground">Required Limit</div>
+                            <div className="text-xl font-bold font-mono">{fuelEUResult.limit.toFixed(2)}</div>
+                            <div className="text-xs text-muted-foreground">gCO₂eq/MJ</div>
+                          </div>
+                          <div>
+                            <div className="text-sm text-muted-foreground">Penalty</div>
+                            <div className="text-xl font-bold font-mono text-destructive">
+                              €{fuelEUResult.penalty.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                            </div>
+                          </div>
+                          <div>
+                            <div className="text-sm text-muted-foreground">Status</div>
+                            <div className="mt-1">
+                              <ComplianceBadge status={fuelEUResult.compliance ? "compliant" : "non-compliant"} />
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* EU ETS Results */}
+                    {euETSResult && (
+                      <div className="space-y-2">
+                        <h3 className="font-semibold text-lg">EU ETS (Emissions Trading System)</h3>
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                          <div>
+                            <div className="text-sm text-muted-foreground">Allowances Needed</div>
+                            <div className="text-xl font-bold font-mono">
+                              {euETSResult.allowancesNeeded.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                            </div>
+                            <div className="text-xs text-muted-foreground">tonnes CO₂</div>
+                          </div>
+                          <div>
+                            <div className="text-sm text-muted-foreground">Annual Cost</div>
+                            <div className="text-xl font-bold font-mono text-destructive">
+                              €{euETSResult.cost.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                            </div>
+                          </div>
+                          <div>
+                            <div className="text-sm text-muted-foreground">Coverage</div>
+                            <div className="text-xl font-bold font-mono">{(euETSResult.coverage * 100).toFixed(0)}%</div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {!eediResult && !ciiResult && !fuelEUResult && !euETSResult && (
+                      <div className="text-center py-12 text-muted-foreground">
+                        Complete calculations in each tab to see the summary
+                      </div>
+                    )}
                   </div>
                 </CardContent>
               </Card>
 
-              <CostSummaryCard
-                costs={[
-                  { label: "EU ETS Allowances", amount: 0, description: "Complete EU ETS calculation" },
-                  { label: "FuelEU Maritime Penalty", amount: 0, description: "Complete FuelEU calculation" },
-                ]}
-              />
+              {(euETSResult || fuelEUResult) && (
+                <CostSummaryCard
+                  costs={[
+                    ...(euETSResult ? [{ 
+                      label: "EU ETS Allowances", 
+                      amount: euETSResult.cost, 
+                      description: `${euETSResult.allowancesNeeded.toLocaleString(undefined, { maximumFractionDigits: 0 })} tonnes at ${(euETSResult.coverage * 100).toFixed(0)}% coverage` 
+                    }] : []),
+                    ...(fuelEUResult ? [{ 
+                      label: "FuelEU Maritime Penalty", 
+                      amount: fuelEUResult.penalty, 
+                      description: fuelEUResult.compliance ? "Compliant - no penalty" : "Non-compliant penalty" 
+                    }] : []),
+                  ]}
+                />
+              )}
             </div>
           </TabsContent>
         </Tabs>

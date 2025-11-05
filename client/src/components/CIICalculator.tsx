@@ -14,9 +14,10 @@ import { CIIRatingDisplay } from "./CIIRatingDisplay";
 
 interface CIICalculatorProps {
   shipType: string;
+  onResultCalculated?: (result: { attained: number; required: number; rating: "A" | "B" | "C" | "D" | "E" }) => void;
 }
 
-export function CIICalculator({ shipType }: CIICalculatorProps) {
+export function CIICalculator({ shipType, onResultCalculated }: CIICalculatorProps) {
   const [result, setResult] = useState<{
     attained: number;
     required: number;
@@ -45,8 +46,12 @@ export function CIICalculator({ shipType }: CIICalculatorProps) {
     const required = calculateRequiredCII(shipType, data.capacity, data.year);
     const rating = getCIIRating(attained, required);
 
-    setResult({ attained, required, rating: rating as any });
-    console.log("CII calculated:", { attained, required, rating });
+    const calculatedResult = { attained, required, rating: rating as any };
+    setResult(calculatedResult);
+    if (onResultCalculated) {
+      onResultCalculated(calculatedResult);
+    }
+    console.log("CII calculated:", calculatedResult);
   };
 
   return (

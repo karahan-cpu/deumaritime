@@ -11,7 +11,11 @@ import { useState } from "react";
 import { calculateFuelEUCompliance } from "@/lib/calculations";
 import { ComplianceBadge } from "./ComplianceBadge";
 
-export function FuelEUCalculator() {
+interface FuelEUCalculatorProps {
+  onResultCalculated?: (result: { intensity: number; limit: number; penalty: number; compliance: boolean }) => void;
+}
+
+export function FuelEUCalculator({ onResultCalculated }: FuelEUCalculatorProps = {}) {
   const [result, setResult] = useState<{
     intensity: number;
     limit: number;
@@ -33,6 +37,9 @@ export function FuelEUCalculator() {
   const handleCalculate = (data: FuelEUInput) => {
     const res = calculateFuelEUCompliance(data.totalEnergyUsed, data.ghgEmissions, data.year);
     setResult(res);
+    if (onResultCalculated) {
+      onResultCalculated(res);
+    }
     console.log("FuelEU calculated:", res);
   };
 
