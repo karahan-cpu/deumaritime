@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Link } from "wouter";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ShipInfoForm } from "@/components/ShipInfoForm";
 import { EEDICalculator } from "@/components/EEDICalculator";
@@ -12,6 +13,7 @@ import { OptimizationPanel } from "@/components/OptimizationPanel";
 import { CostSummaryCard } from "@/components/CostSummaryCard";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { Anchor, FileText, TrendingDown, Euro, DollarSign, BarChart3, Ship, Fuel, Globe, Target } from "lucide-react";
 import { CIIRatingDisplay } from "@/components/CIIRatingDisplay";
 import { ComplianceBadge } from "@/components/ComplianceBadge";
@@ -116,7 +118,15 @@ export default function Calculator() {
                 <p className="text-sm text-muted-foreground">EEDI · EEXI · CII · FuelEU · EU ETS · GFI</p>
               </div>
             </div>
-            <ThemeToggle />
+            <div className="flex items-center gap-3">
+              <Link href="/fleet">
+                <Button variant="outline" data-testid="button-fleet-nav">
+                  <Ship className="h-4 w-4" />
+                  Fleet
+                </Button>
+              </Link>
+              <ThemeToggle />
+            </div>
           </div>
         </div>
       </header>

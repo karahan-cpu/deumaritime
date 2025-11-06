@@ -70,7 +70,7 @@ export function AddVesselDialog({ open, onOpenChange, onAdd }: AddVesselDialogPr
       dwt: data.dwt ? parseFloat(data.dwt) : undefined,
       buildYear: data.buildYear ? parseInt(data.buildYear) : undefined,
       eexi: data.eexi ? parseFloat(data.eexi) : undefined,
-      ciiRating: data.ciiRating && data.ciiRating !== "" ? (data.ciiRating as any) : undefined,
+      ciiRating: data.ciiRating && ["A", "B", "C", "D", "E"].includes(data.ciiRating) ? (data.ciiRating as any) : undefined,
       ciiValue: data.ciiValue ? parseFloat(data.ciiValue) : undefined,
       fuelEUStatus: data.fuelEUStatus || undefined,
       euETSCost: data.euETSCost ? parseFloat(data.euETSCost) : undefined,

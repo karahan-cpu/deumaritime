@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { Plus } from "lucide-react";
+import { Link } from "wouter";
+import { Plus, Calculator } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import {
@@ -119,7 +120,15 @@ export default function Fleet() {
               <h1 className="text-xl font-semibold">Maritime Emissions Calculator</h1>
             </div>
           </div>
-          <ThemeToggle />
+          <div className="flex items-center gap-3">
+            <Link href="/">
+              <Button variant="outline" data-testid="button-calculator-nav">
+                <Calculator className="h-4 w-4" />
+                Calculator
+              </Button>
+            </Link>
+            <ThemeToggle />
+          </div>
         </div>
       </header>
 
