@@ -44,6 +44,15 @@ Preferred communication style: Simple, everyday language.
 - Fuel cost calculations using SFOC method (175-185 g/kWh main, 220 g/kWh auxiliary)
 - CO2 emission factors for various fuel types (HFO, MDO, LNG, Methanol, etc.)
 
+**Auto-Optimization Feature**: AI-powered parameter optimization system (`components/OptimizationPanel.tsx`):
+- Hill-climbing optimization algorithm with dynamic energy/emissions recalculation
+- Six optimization targets: Achieve CII Rating A/B/C, Minimize Total Costs, IMO GFI Surplus, Zero FuelEU Penalty
+- Seven adjustable parameters with lock/unlock functionality: Annual Fuel Consumption (1,000-20,000 MT), Distance Traveled (20,000-150,000 NM), Main Engine Power (2,000-20,000 kW), Auxiliary Power (200-1,500 kW), Days at Sea (200-350), Days in Port (0-100), Fuel Price ($400-800/MT)
+- Synchronized parameter ranges between UI sliders and optimization algorithm (matching min/max/step values)
+- Optimization results display with iteration count, target achievement status, and parameter comparison (current vs optimized)
+- Apply functionality that updates all calculator results (CII, fuel costs) and navigates to summary view
+- Intelligent early stopping: returns immediately with 0 iterations when target is already met or exceeded
+
 ### Backend Architecture
 
 **Server Framework**: Express.js with TypeScript running on Node.js
