@@ -99,6 +99,19 @@ export const fuelCostInputSchema = z.object({
   fuelPrice: z.number().positive("Fuel price must be positive"),
 });
 
+export const fleetVesselSchema = z.object({
+  id: z.string(),
+  vesselName: z.string().min(1, "Vessel name is required"),
+  type: z.enum(shipTypes).optional(),
+  dwt: z.number().positive("DWT must be positive").optional(),
+  buildYear: z.number().min(1900).max(2030).optional(),
+  eexi: z.number().optional(),
+  ciiRating: z.enum(["A", "B", "C", "D", "E"]).optional(),
+  ciiValue: z.number().optional(),
+  fuelEUStatus: z.string().optional(),
+  euETSCost: z.number().optional(),
+});
+
 export type ShipInfo = z.infer<typeof shipInfoSchema>;
 export type EEDIInput = z.infer<typeof eediInputSchema>;
 export type EEXIInput = z.infer<typeof eexiInputSchema>;
@@ -108,3 +121,4 @@ export type EUETSInput = z.infer<typeof euETSInputSchema>;
 export type IMOGFIInput = z.infer<typeof imoGFIInputSchema>;
 export type ShipbuildingCostInput = z.infer<typeof shipbuildingCostInputSchema>;
 export type FuelCostInput = z.infer<typeof fuelCostInputSchema>;
+export type FleetVessel = z.infer<typeof fleetVesselSchema>;
