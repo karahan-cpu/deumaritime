@@ -209,9 +209,11 @@ export default function Fleet() {
                         {vessel.vesselName}
                       </TableCell>
                       <TableCell>{vessel.type || "N/A"}</TableCell>
-                      <TableCell>{vessel.dwt || "N/A"}</TableCell>
-                      <TableCell>{vessel.buildYear || "N/A"}</TableCell>
-                      <TableCell>{vessel.eexi || "N/A"}</TableCell>
+                      <TableCell className="font-mono">{vessel.dwt ? vessel.dwt.toLocaleString() : "N/A"}</TableCell>
+                      <TableCell className="font-mono">{vessel.buildYear || "N/A"}</TableCell>
+                      <TableCell className="font-mono">
+                        {vessel.eexi ? vessel.eexi.toFixed(2) : "N/A"}
+                      </TableCell>
                       <TableCell>
                         {vessel.ciiRating ? (
                           <Badge
@@ -224,9 +226,13 @@ export default function Fleet() {
                           "N/A"
                         )}
                       </TableCell>
-                      <TableCell>{vessel.ciiValue || "N/A"}</TableCell>
+                      <TableCell className="font-mono">
+                        {vessel.ciiValue ? vessel.ciiValue.toFixed(2) : "N/A"}
+                      </TableCell>
                       <TableCell>{vessel.fuelEUStatus || "N/A"}</TableCell>
-                      <TableCell>{vessel.euETSCost || "N/A"}</TableCell>
+                      <TableCell className="font-mono">
+                        {vessel.euETSCost ? `€${vessel.euETSCost.toLocaleString(undefined, { maximumFractionDigits: 0 })}` : "N/A"}
+                      </TableCell>
                       <TableCell>
                         <Button
                           variant="ghost"
