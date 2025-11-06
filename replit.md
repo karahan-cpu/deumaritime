@@ -16,12 +16,21 @@ Preferred communication style: Simple, everyday language.
 
 **Framework**: React 18 with TypeScript in a Single Page Application (SPA) pattern
 
-**Routing**: Wouter for lightweight client-side routing (currently single-route with Calculator as the main page)
+**Routing**: Wouter for lightweight client-side routing (single-page application with Calculator as the only route)
 
 **State Management**: 
 - React Hook Form for complex form state with Zod validation
 - TanStack Query (React Query) for server state management (configured but minimal API integration currently)
-- Local component state with useState for calculator results and UI interactions
+- Local component state with useState for calculator results, fleet management, and UI interactions
+- localStorage for fleet vessel persistence across sessions
+
+**Fleet Management**: Integrated directly into Calculator page's Summary tab
+- Fleet table displays saved vessels below cost summary
+- "Save to Fleet" button captures all calculator data (ship info + all calculation results)
+- "Add Vessel" button allows manual vessel addition with automatic CII calculation
+- Delete functionality with confirmation dialog
+- All fleet data persists in localStorage (key: "fleet_vessels")
+- No separate Fleet page - unified single-page experience
 
 **UI Component Library**: shadcn/ui components built on Radix UI primitives with Tailwind CSS styling. The design system follows a "New York" style variant with custom color schemes for light/dark modes. Components are highly customizable with class-variance-authority for variant management.
 
