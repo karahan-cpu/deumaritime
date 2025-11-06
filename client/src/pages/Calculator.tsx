@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
+import { nanoid } from "nanoid";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ShipInfoForm } from "@/components/ShipInfoForm";
 import { EEDICalculator } from "@/components/EEDICalculator";
@@ -14,11 +15,12 @@ import { CostSummaryCard } from "@/components/CostSummaryCard";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Anchor, FileText, TrendingDown, Euro, DollarSign, BarChart3, Ship, Fuel, Globe, Target } from "lucide-react";
+import { Anchor, FileText, TrendingDown, Euro, DollarSign, BarChart3, Ship, Fuel, Globe, Target, Save } from "lucide-react";
 import { CIIRatingDisplay } from "@/components/CIIRatingDisplay";
 import { ComplianceBadge } from "@/components/ComplianceBadge";
 import { GHGIntensityChart } from "@/components/GHGIntensityChart";
-import type { ShipInfo } from "@shared/schema";
+import { useToast } from "@/hooks/use-toast";
+import type { ShipInfo, FleetVessel } from "@shared/schema";
 import { calculateIMOGFI, calculateFuelCost, calculateCII, calculateRequiredCII, getCIIRating, type OptimizationParameters } from "@/lib/calculations";
 
 interface EEDIResult {
@@ -49,7 +51,11 @@ interface EUETSResult {
 type IMOGFIResult = ReturnType<typeof calculateIMOGFI>;
 type FuelCostResult = ReturnType<typeof calculateFuelCost>;
 
+const STORAGE_KEY = "fleet_vessels";
+
 export default function Calculator() {
+  const [, setLocation] = useLocation();
+  const { toast } = useToast();
   const [shipInfo, setShipInfo] = useState<ShipInfo | null>(null);
   const [activeTab, setActiveTab] = useState("ship-info");
   const [eediResult, setEediResult] = useState<EEDIResult | null>(null);
@@ -102,6 +108,61 @@ export default function Calculator() {
     }
     
     setActiveTab("summary");
+  };
+
+  const handleSaveToFleet = () => {
+    if (!shipInfo) {
+      toast({
+        title: "Error",
+        description: "Please complete ship information first",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const newVessel: FleetVessel = {
+      id: nanoid(),
+      vesselName: shipInfo.shipName,
+      type: shipInfo.shipType,
+      dwt: shipInfo.deadweight,
+      grossTonnage: shipInfo.grossTonnage,
+      buildYear: shipInfo.yearBuilt,
+      isNewBuild: shipInfo.isNewBuild,
+      
+      annualFuelConsumption: optimizationParams.annualFuelConsumption,
+      distanceTraveled: optimizationParams.distanceTraveled,
+      mainEnginePower: optimizationParams.mainEnginePower,
+      auxiliaryPower: optimizationParams.auxiliaryPower,
+      daysAtSea: optimizationParams.daysAtSea,
+      daysInPort: optimizationParams.daysInPort,
+      fuelType: optimizationParams.fuelType,
+      fuelPrice: optimizationParams.fuelPrice,
+      
+      eexi: eediResult?.attained,
+      ciiRating: ciiResult?.rating,
+      ciiValue: ciiResult?.attained,
+      fuelEUStatus: fuelEUResult?.compliance ? "Compliant" : fuelEUResult ? "Non-Compliant" : undefined,
+      euETSCost: euETSResult?.cost,
+      imoGFICost: imoGFIResult ? imoGFIResult.tier1Cost + imoGFIResult.tier2Cost : undefined,
+      fuelCost: fuelCostResult?.totalCost,
+      totalCost: (shipbuildingCost || 0) + 
+                 (fuelCostResult?.totalCost || 0) + 
+                 (imoGFIResult ? imoGFIResult.tier1Cost + imoGFIResult.tier2Cost : 0) + 
+                 (fuelEUResult?.penalty || 0) + 
+                 (euETSResult?.cost || 0),
+      year: new Date().getFullYear(),
+    };
+
+    const existingVessels = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]") as FleetVessel[];
+    const updatedVessels = [...existingVessels, newVessel];
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(updatedVessels));
+
+    toast({
+      title: "Success",
+      description: `${shipInfo.shipName} has been added to your fleet`,
+    });
+
+    setLocation("/fleet");
   };
 
   return (
@@ -271,10 +332,20 @@ export default function Calculator() {
               
               <Card>
                 <CardHeader>
-                  <CardTitle>Compliance Summary</CardTitle>
-                  <CardDescription>
-                    Overview of all regulatory calculations for {shipInfo?.shipName}
-                  </CardDescription>
+                  <div className="flex items-start justify-between gap-4">
+                    <div>
+                      <CardTitle>Compliance Summary</CardTitle>
+                      <CardDescription>
+                        Overview of all regulatory calculations for {shipInfo?.shipName}
+                      </CardDescription>
+                    </div>
+                    {shipInfo && (ciiResult || eediResult) && (
+                      <Button onClick={handleSaveToFleet} data-testid="button-save-to-fleet">
+                        <Save className="h-4 w-4" />
+                        Save to Fleet
+                      </Button>
+                    )}
+                  </div>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-6">
