@@ -1,5 +1,4 @@
-import { useState, useEffect } from "react";
-import { nanoid } from "nanoid";
+import { useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ShipInfoForm } from "@/components/ShipInfoForm";
 import { EEDICalculator } from "@/components/EEDICalculator";
@@ -12,17 +11,13 @@ import { FuelCostCalculator } from "@/components/FuelCostCalculator";
 import { OptimizationPanel } from "@/components/OptimizationPanel";
 import { CostSummaryCard } from "@/components/CostSummaryCard";
 import { ThemeToggle } from "@/components/ThemeToggle";
-import { AddVesselDialog } from "@/components/AddVesselDialog";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Anchor, FileText, TrendingDown, Euro, DollarSign, BarChart3, Ship, Fuel, Globe, Target, Save, Plus, Trash2 } from "lucide-react";
+import { Anchor, FileText, TrendingDown, Euro, DollarSign, BarChart3, Ship, Fuel, Globe, Target } from "lucide-react";
 import { CIIRatingDisplay } from "@/components/CIIRatingDisplay";
 import { ComplianceBadge } from "@/components/ComplianceBadge";
 import { GHGIntensityChart } from "@/components/GHGIntensityChart";
-import { useToast } from "@/hooks/use-toast";
-import type { ShipInfo, FleetVessel } from "@shared/schema";
+import type { ShipInfo } from "@shared/schema";
 import { calculateIMOGFI, calculateFuelCost, calculateCII, calculateRequiredCII, getCIIRating, type OptimizationParameters } from "@/lib/calculations";
 
 interface EEDIResult {
@@ -53,30 +48,7 @@ interface EUETSResult {
 type IMOGFIResult = ReturnType<typeof calculateIMOGFI>;
 type FuelCostResult = ReturnType<typeof calculateFuelCost>;
 
-const STORAGE_KEY = "fleet_vessels";
-
-const loadVesselsFromStorage = (): FleetVessel[] => {
-  try {
-    const stored = localStorage.getItem(STORAGE_KEY);
-    if (stored) {
-      return JSON.parse(stored);
-    }
-  } catch (error) {
-    console.error("Failed to load vessels from storage:", error);
-  }
-  return [];
-};
-
-const saveVesselsToStorage = (vessels: FleetVessel[]) => {
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(vessels));
-  } catch (error) {
-    console.error("Failed to save vessels to storage:", error);
-  }
-};
-
 export default function Calculator() {
-  const { toast } = useToast();
   const [shipInfo, setShipInfo] = useState<ShipInfo | null>(null);
   const [activeTab, setActiveTab] = useState("ship-info");
   const [eediResult, setEediResult] = useState<EEDIResult | null>(null);
@@ -96,12 +68,6 @@ export default function Calculator() {
     fuelType: "HFO",
     fuelPrice: 550,
   });
-  const [vessels, setVessels] = useState<FleetVessel[]>(() => loadVesselsFromStorage());
-  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
-
-  useEffect(() => {
-    saveVesselsToStorage(vessels);
-  }, [vessels]);
 
   const handleShipInfoSubmit = (data: ShipInfo) => {
     setShipInfo(data);
@@ -137,88 +103,6 @@ export default function Calculator() {
     setActiveTab("summary");
   };
 
-  const handleSaveToFleet = () => {
-    if (!shipInfo) {
-      toast({
-        title: "Error",
-        description: "Please complete ship information first",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    const newVessel: FleetVessel = {
-      id: nanoid(),
-      vesselName: shipInfo.shipName,
-      type: shipInfo.shipType,
-      dwt: shipInfo.deadweight,
-      grossTonnage: shipInfo.grossTonnage,
-      buildYear: shipInfo.yearBuilt,
-      isNewBuild: shipInfo.isNewBuild,
-      
-      annualFuelConsumption: optimizationParams.annualFuelConsumption,
-      distanceTraveled: optimizationParams.distanceTraveled,
-      mainEnginePower: optimizationParams.mainEnginePower,
-      auxiliaryPower: optimizationParams.auxiliaryPower,
-      daysAtSea: optimizationParams.daysAtSea,
-      daysInPort: optimizationParams.daysInPort,
-      fuelType: optimizationParams.fuelType,
-      fuelPrice: optimizationParams.fuelPrice,
-      
-      eexi: eediResult?.attained,
-      ciiRating: ciiResult?.rating,
-      ciiValue: ciiResult?.attained,
-      fuelEUStatus: fuelEUResult?.compliance ? "Compliant" : fuelEUResult ? "Non-Compliant" : undefined,
-      euETSCost: euETSResult?.cost,
-      imoGFICost: imoGFIResult ? imoGFIResult.tier1Cost + imoGFIResult.tier2Cost : undefined,
-      fuelCost: fuelCostResult?.totalCost,
-      totalCost: (shipbuildingCost || 0) + 
-                 (fuelCostResult?.totalCost || 0) + 
-                 (imoGFIResult ? imoGFIResult.tier1Cost + imoGFIResult.tier2Cost : 0) + 
-                 (fuelEUResult?.penalty || 0) + 
-                 (euETSResult?.cost || 0),
-      year: new Date().getFullYear(),
-    };
-
-    setVessels([...vessels, newVessel]);
-
-    toast({
-      title: "Success",
-      description: `${shipInfo.shipName} has been added to your fleet`,
-    });
-  };
-
-  const handleAddVessel = (vessel: Omit<FleetVessel, "id">) => {
-    const newVessel: FleetVessel = {
-      ...vessel,
-      id: nanoid(),
-    };
-    setVessels([...vessels, newVessel]);
-    setIsAddDialogOpen(false);
-  };
-
-  const handleDeleteVessel = (id: string) => {
-    if (confirm("Are you sure you want to delete this vessel?")) {
-      setVessels(vessels.filter((v) => v.id !== id));
-    }
-  };
-
-  const getCIIBadgeColor = (rating?: string) => {
-    switch (rating) {
-      case "A":
-        return "bg-green-500 text-white border-transparent hover:bg-green-600";
-      case "B":
-        return "bg-orange-400 text-white border-transparent hover:bg-orange-500";
-      case "C":
-        return "bg-yellow-500 text-white border-transparent hover:bg-yellow-600";
-      case "D":
-        return "bg-orange-500 text-white border-transparent hover:bg-orange-600";
-      case "E":
-        return "bg-red-500 text-white border-transparent hover:bg-red-600";
-      default:
-        return "";
-    }
-  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -381,20 +265,10 @@ export default function Calculator() {
               
               <Card>
                 <CardHeader>
-                  <div className="flex items-start justify-between gap-4">
-                    <div>
-                      <CardTitle>Compliance Summary</CardTitle>
-                      <CardDescription>
-                        Overview of all regulatory calculations for {shipInfo?.shipName}
-                      </CardDescription>
-                    </div>
-                    {shipInfo && (ciiResult || eediResult) && (
-                      <Button onClick={handleSaveToFleet} data-testid="button-save-to-fleet">
-                        <Save className="h-4 w-4" />
-                        Save to Fleet
-                      </Button>
-                    )}
-                  </div>
+                  <CardTitle>Compliance Summary</CardTitle>
+                  <CardDescription>
+                    Overview of all regulatory calculations for {shipInfo?.shipName}
+                  </CardDescription>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-6">
@@ -540,105 +414,10 @@ export default function Calculator() {
                   }}
                 />
               )}
-
-              <Card>
-                <CardHeader>
-                  <div className="flex items-start justify-between gap-4">
-                    <div>
-                      <CardTitle>Fleet Details</CardTitle>
-                      <CardDescription>
-                        Manage and monitor your fleet vessels
-                      </CardDescription>
-                    </div>
-                    <Button onClick={() => setIsAddDialogOpen(true)} data-testid="button-add-vessel">
-                      <Plus className="h-4 w-4" />
-                      Add Vessel
-                    </Button>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <div className="overflow-x-auto">
-                    <Table>
-                      <TableHeader>
-                        <TableRow className="bg-[#5B7C99] hover:bg-[#5B7C99] dark:bg-[#4A6580] dark:hover:bg-[#4A6580]">
-                          <TableHead className="text-white font-semibold dark:text-white">Vessel name</TableHead>
-                          <TableHead className="text-white font-semibold dark:text-white">Type</TableHead>
-                          <TableHead className="text-white font-semibold dark:text-white">DWT</TableHead>
-                          <TableHead className="text-white font-semibold dark:text-white">Build Year</TableHead>
-                          <TableHead className="text-white font-semibold dark:text-white">EEXI</TableHead>
-                          <TableHead className="text-white font-semibold dark:text-white">CII Rating</TableHead>
-                          <TableHead className="text-white font-semibold dark:text-white">CII Value</TableHead>
-                          <TableHead className="text-white font-semibold dark:text-white">FuelEU Status</TableHead>
-                          <TableHead className="text-white font-semibold dark:text-white">EU ETS Cost</TableHead>
-                          <TableHead className="text-white font-semibold dark:text-white">Actions</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {vessels.length === 0 ? (
-                          <TableRow>
-                            <TableCell colSpan={10} className="text-center py-8 text-muted-foreground">
-                              No vessels added yet. Use the calculators above to add your first vessel or click "Add Vessel".
-                            </TableCell>
-                          </TableRow>
-                        ) : (
-                          vessels.map((vessel) => (
-                            <TableRow key={vessel.id} data-testid={`vessel-row-${vessel.id}`}>
-                              <TableCell className="font-medium" data-testid={`vessel-name-${vessel.id}`}>
-                                {vessel.vesselName}
-                              </TableCell>
-                              <TableCell>{vessel.type || "N/A"}</TableCell>
-                              <TableCell className="font-mono">{vessel.dwt ? vessel.dwt.toLocaleString() : "N/A"}</TableCell>
-                              <TableCell className="font-mono">{vessel.buildYear || "N/A"}</TableCell>
-                              <TableCell className="font-mono">
-                                {vessel.eexi ? vessel.eexi.toFixed(2) : "N/A"}
-                              </TableCell>
-                              <TableCell>
-                                {vessel.ciiRating ? (
-                                  <Badge
-                                    className={getCIIBadgeColor(vessel.ciiRating)}
-                                    data-testid={`cii-badge-${vessel.id}`}
-                                  >
-                                    {vessel.ciiRating}
-                                  </Badge>
-                                ) : (
-                                  "N/A"
-                                )}
-                              </TableCell>
-                              <TableCell className="font-mono">
-                                {vessel.ciiValue ? vessel.ciiValue.toFixed(2) : "N/A"}
-                              </TableCell>
-                              <TableCell>{vessel.fuelEUStatus || "N/A"}</TableCell>
-                              <TableCell className="font-mono">
-                                {vessel.euETSCost ? `€${vessel.euETSCost.toLocaleString(undefined, { maximumFractionDigits: 0 })}` : "N/A"}
-                              </TableCell>
-                              <TableCell>
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  onClick={() => handleDeleteVessel(vessel.id)}
-                                  data-testid={`button-delete-${vessel.id}`}
-                                >
-                                  <Trash2 className="h-4 w-4 text-destructive" />
-                                </Button>
-                              </TableCell>
-                            </TableRow>
-                          ))
-                        )}
-                      </TableBody>
-                    </Table>
-                  </div>
-                </CardContent>
-              </Card>
             </div>
           </TabsContent>
         </Tabs>
       </main>
-
-      <AddVesselDialog
-        open={isAddDialogOpen}
-        onOpenChange={setIsAddDialogOpen}
-        onAdd={handleAddVessel}
-      />
     </div>
   );
 }

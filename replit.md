@@ -21,16 +21,7 @@ Preferred communication style: Simple, everyday language.
 **State Management**: 
 - React Hook Form for complex form state with Zod validation
 - TanStack Query (React Query) for server state management (configured but minimal API integration currently)
-- Local component state with useState for calculator results, fleet management, and UI interactions
-- localStorage for fleet vessel persistence across sessions
-
-**Fleet Management**: Integrated directly into Calculator page's Summary tab
-- Fleet table displays saved vessels below cost summary
-- "Save to Fleet" button captures all calculator data (ship info + all calculation results)
-- "Add Vessel" button allows manual vessel addition with automatic CII calculation
-- Delete functionality with confirmation dialog
-- All fleet data persists in localStorage (key: "fleet_vessels")
-- No separate Fleet page - unified single-page experience
+- Local component state with useState for calculator results and UI interactions
 
 **UI Component Library**: shadcn/ui components built on Radix UI primitives with Tailwind CSS styling. The design system follows a "New York" style variant with custom color schemes for light/dark modes. Components are highly customizable with class-variance-authority for variant management.
 
