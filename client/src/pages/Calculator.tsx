@@ -8,15 +8,16 @@ import { EUETSCalculator } from "@/components/EUETSCalculator";
 import { IMOGFICalculator } from "@/components/IMOGFICalculator";
 import { ShipbuildingCostCalculator } from "@/components/ShipbuildingCostCalculator";
 import { FuelCostCalculator } from "@/components/FuelCostCalculator";
+import { OptimizationPanel } from "@/components/OptimizationPanel";
 import { CostSummaryCard } from "@/components/CostSummaryCard";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Anchor, FileText, TrendingDown, Euro, DollarSign, BarChart3, Ship, Fuel, Globe } from "lucide-react";
+import { Anchor, FileText, TrendingDown, Euro, DollarSign, BarChart3, Ship, Fuel, Globe, Target } from "lucide-react";
 import { CIIRatingDisplay } from "@/components/CIIRatingDisplay";
 import { ComplianceBadge } from "@/components/ComplianceBadge";
 import { GHGIntensityChart } from "@/components/GHGIntensityChart";
 import type { ShipInfo } from "@shared/schema";
-import { calculateIMOGFI, calculateFuelCost } from "@/lib/calculations";
+import { calculateIMOGFI, calculateFuelCost, calculateCII, calculateRequiredCII, getCIIRating, type OptimizationParameters } from "@/lib/calculations";
 
 interface EEDIResult {
   attained: number;
@@ -56,10 +57,49 @@ export default function Calculator() {
   const [imoGFIResult, setImoGFIResult] = useState<IMOGFIResult | null>(null);
   const [shipbuildingCost, setShipbuildingCost] = useState<number>(0);
   const [fuelCostResult, setFuelCostResult] = useState<FuelCostResult | null>(null);
+  const [optimizationParams, setOptimizationParams] = useState<OptimizationParameters>({
+    annualFuelConsumption: 5000,
+    distanceTraveled: 70000,
+    mainEnginePower: 10000,
+    auxiliaryPower: 500,
+    daysAtSea: 300,
+    daysInPort: 50,
+    fuelType: "HFO",
+    fuelPrice: 550,
+  });
 
   const handleShipInfoSubmit = (data: ShipInfo) => {
     setShipInfo(data);
     setActiveTab(data.isNewBuild ? "eedi" : "cii");
+  };
+
+  const handleApplyOptimization = (params: OptimizationParameters) => {
+    setOptimizationParams(params);
+    
+    if (shipInfo) {
+      const attainedCII = calculateCII(
+        params.annualFuelConsumption,
+        params.distanceTraveled,
+        shipInfo.deadweight,
+        params.fuelType
+      );
+      const requiredCII = calculateRequiredCII(shipInfo.shipType, shipInfo.deadweight, new Date().getFullYear());
+      const rating = getCIIRating(attainedCII, requiredCII) as "A" | "B" | "C" | "D" | "E";
+      
+      setCiiResult({ attained: attainedCII, required: requiredCII, rating });
+      
+      const fuelCostResult = calculateFuelCost(
+        params.mainEnginePower,
+        params.auxiliaryPower,
+        params.daysAtSea,
+        params.daysInPort,
+        params.fuelType,
+        params.fuelPrice
+      );
+      setFuelCostResult(fuelCostResult);
+    }
+    
+    setActiveTab("summary");
   };
 
   return (
@@ -83,7 +123,7 @@ export default function Calculator() {
 
       <main className="container mx-auto px-4 py-8 max-w-7xl">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-3 lg:grid-cols-10 gap-2">
+          <TabsList className="grid w-full grid-cols-3 lg:grid-cols-11 gap-2">
             <TabsTrigger value="ship-info" className="gap-2" data-testid="tab-ship-info">
               <Anchor className="h-4 w-4" />
               <span className="hidden sm:inline">Ship Info</span>
@@ -113,6 +153,10 @@ export default function Calculator() {
             <TabsTrigger value="costs" className="gap-2" disabled={!shipInfo} data-testid="tab-costs">
               <Ship className="h-4 w-4" />
               <span className="hidden sm:inline">Costs</span>
+            </TabsTrigger>
+            <TabsTrigger value="optimize" className="gap-2" disabled={!shipInfo} data-testid="tab-optimize">
+              <Target className="h-4 w-4" />
+              <span className="hidden sm:inline">Optimize</span>
             </TabsTrigger>
             <TabsTrigger value="summary" className="gap-2" disabled={!shipInfo} data-testid="tab-summary">
               <BarChart3 className="h-4 w-4" />
@@ -197,6 +241,18 @@ export default function Calculator() {
               )}
               <FuelCostCalculator onCalculate={setFuelCostResult} />
             </div>
+          </TabsContent>
+
+          <TabsContent value="optimize">
+            {shipInfo && (
+              <OptimizationPanel
+                shipType={shipInfo.shipType}
+                shipCapacity={shipInfo.deadweight}
+                year={new Date().getFullYear()}
+                currentParameters={optimizationParams}
+                onApply={handleApplyOptimization}
+              />
+            )}
           </TabsContent>
 
           <TabsContent value="summary">

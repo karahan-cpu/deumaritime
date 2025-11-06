@@ -316,3 +316,186 @@ export function calculateFuelCost(
     totalCost,
   };
 }
+
+export interface OptimizationParameters {
+  annualFuelConsumption: number;
+  distanceTraveled: number;
+  mainEnginePower: number;
+  auxiliaryPower: number;
+  daysAtSea: number;
+  daysInPort: number;
+  fuelType: string;
+  fuelPrice: number;
+}
+
+export interface OptimizationConstraints {
+  fixedParams: Set<keyof OptimizationParameters>;
+  shipType: string;
+  shipCapacity: number;
+  year: number;
+  totalEnergyUsed?: number;
+  ghgEmissions?: number;
+}
+
+export interface OptimizationTarget {
+  type: 'cii_rating' | 'minimize_costs' | 'imo_gfi_surplus' | 'zero_fueleu';
+  value?: string;
+}
+
+export interface OptimizationResult {
+  success: boolean;
+  parameters: OptimizationParameters;
+  improvements: {
+    ciiRating?: string;
+    totalCosts?: number;
+    imoGFIStatus?: string;
+    fuelEUPenalty?: number;
+  };
+  iterations: number;
+}
+
+export function optimizeParameters(
+  current: OptimizationParameters,
+  target: OptimizationTarget,
+  constraints: OptimizationConstraints
+): OptimizationResult {
+  const maxIterations = 100;
+  let best = { ...current };
+  let iterations = 0;
+  
+  const parameterRanges: Record<keyof OptimizationParameters, { min: number; max: number; step: number }> = {
+    annualFuelConsumption: { min: 1000, max: 20000, step: 50 },
+    distanceTraveled: { min: 20000, max: 150000, step: 500 },
+    mainEnginePower: { min: 2000, max: 20000, step: 250 },
+    auxiliaryPower: { min: 200, max: 1500, step: 25 },
+    daysAtSea: { min: 200, max: 350, step: 2 },
+    daysInPort: { min: 0, max: 100, step: 2 },
+    fuelType: { min: 0, max: 0, step: 0 },
+    fuelPrice: { min: 400, max: 800, step: 5 },
+  };
+  
+  function calculateEnergyAndEmissions(params: OptimizationParameters): { energy: number; emissions: number } {
+    const hoursAtSea = params.daysAtSea * 24;
+    const hoursInPort = params.daysInPort * 24;
+    
+    const totalEnergyUsed = 
+      (params.mainEnginePower * 0.75 * hoursAtSea + 
+       params.auxiliaryPower * 0.5 * hoursAtSea +
+       params.auxiliaryPower * 0.3 * hoursInPort) * 3.6;
+    
+    const fuelConsumption = 
+      (params.mainEnginePower * 0.75 * hoursAtSea * (params.fuelType === "HFO" ? 175 : 185) +
+       params.auxiliaryPower * 0.5 * hoursAtSea * 220 +
+       params.auxiliaryPower * 0.3 * hoursInPort * 220) / 1000000;
+    
+    const cfFactor = params.fuelType === "HFO" ? 3.114 : 
+                     params.fuelType === "LNG" ? 2.750 :
+                     params.fuelType === "Methanol" ? 1.375 :
+                     params.fuelType === "Ammonia" ? 0 : 3.206;
+    
+    const ghgEmissions = fuelConsumption * cfFactor * 1000000000;
+    
+    return { energy: totalEnergyUsed, emissions: ghgEmissions };
+  }
+  
+  function evaluateFitness(params: OptimizationParameters): number {
+    if (target.type === 'cii_rating') {
+      const cii = calculateCII(
+        params.annualFuelConsumption,
+        params.distanceTraveled,
+        constraints.shipCapacity,
+        params.fuelType
+      );
+      const required = calculateRequiredCII(constraints.shipType, constraints.shipCapacity, constraints.year);
+      const rating = getCIIRating(cii, required);
+      const targetRating = target.value || 'A';
+      const ratingOrder = ['A', 'B', 'C', 'D', 'E'];
+      const currentIndex = ratingOrder.indexOf(rating);
+      const targetIndex = ratingOrder.indexOf(targetRating);
+      return -(currentIndex - targetIndex);
+    } else if (target.type === 'minimize_costs') {
+      const fuelCost = calculateFuelCost(
+        params.mainEnginePower,
+        params.auxiliaryPower,
+        params.daysAtSea,
+        params.daysInPort,
+        params.fuelType,
+        params.fuelPrice
+      );
+      return -fuelCost.totalCost;
+    } else if (target.type === 'imo_gfi_surplus') {
+      const { energy, emissions } = calculateEnergyAndEmissions(params);
+      const gfi = calculateIMOGFI(energy, emissions, constraints.year);
+      if (gfi.surplus > 0) return gfi.surplus;
+      if (gfi.tier1Deficit > 0) return -gfi.tier1Deficit;
+      return -gfi.tier2Deficit;
+    } else if (target.type === 'zero_fueleu') {
+      const { energy, emissions } = calculateEnergyAndEmissions(params);
+      const fuelEU = calculateFuelEUCompliance(energy, emissions, constraints.year);
+      return -fuelEU.penalty;
+    }
+    return 0;
+  }
+  
+  let bestFitness = evaluateFitness(best);
+  
+  for (iterations = 0; iterations < maxIterations; iterations++) {
+    let improved = false;
+    
+    for (const param in best) {
+      if (constraints.fixedParams.has(param as keyof OptimizationParameters)) continue;
+      if (param === 'fuelType') continue;
+      
+      const range = parameterRanges[param as keyof OptimizationParameters];
+      if (!range || range.step === 0) continue;
+      
+      const currentValue = best[param as keyof OptimizationParameters] as number;
+      
+      const testIncrease = { ...best, [param]: Math.min(currentValue + range.step, range.max) };
+      const testDecrease = { ...best, [param]: Math.max(currentValue - range.step, range.min) };
+      
+      const increaseFitness = evaluateFitness(testIncrease);
+      const decreaseFitness = evaluateFitness(testDecrease);
+      
+      if (increaseFitness > bestFitness) {
+        best = testIncrease;
+        bestFitness = increaseFitness;
+        improved = true;
+      } else if (decreaseFitness > bestFitness) {
+        best = testDecrease;
+        bestFitness = decreaseFitness;
+        improved = true;
+      }
+    }
+    
+    if (!improved) break;
+  }
+  
+  const fuelCost = calculateFuelCost(
+    best.mainEnginePower,
+    best.auxiliaryPower,
+    best.daysAtSea,
+    best.daysInPort,
+    best.fuelType,
+    best.fuelPrice
+  );
+  
+  const cii = calculateCII(
+    best.annualFuelConsumption,
+    best.distanceTraveled,
+    constraints.shipCapacity,
+    best.fuelType
+  );
+  const required = calculateRequiredCII(constraints.shipType, constraints.shipCapacity, constraints.year);
+  const rating = getCIIRating(cii, required);
+  
+  return {
+    success: iterations < maxIterations,
+    parameters: best,
+    improvements: {
+      ciiRating: rating,
+      totalCosts: fuelCost.totalCost,
+    },
+    iterations,
+  };
+}
