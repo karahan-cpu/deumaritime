@@ -102,14 +102,39 @@ export const fuelCostInputSchema = z.object({
 export const fleetVesselSchema = z.object({
   id: z.string(),
   vesselName: z.string().min(1, "Vessel name is required"),
+  
+  // Ship Info
   type: z.enum(shipTypes).optional(),
   dwt: z.number().positive("DWT must be positive").optional(),
+  grossTonnage: z.number().positive("Gross tonnage must be positive").optional(),
   buildYear: z.number().min(1900).max(2030).optional(),
+  isNewBuild: z.boolean().optional(),
+  
+  // Operational Parameters
+  annualFuelConsumption: z.number().positive().optional(),
+  distanceTraveled: z.number().positive().optional(),
+  mainEnginePower: z.number().positive().optional(),
+  mainEngineSFC: z.number().positive().optional(),
+  auxiliaryPower: z.number().positive().optional(),
+  auxiliarySFC: z.number().positive().optional(),
+  daysAtSea: z.number().positive().optional(),
+  daysInPort: z.number().nonnegative().optional(),
+  fuelType: z.string().optional(),
+  fuelPrice: z.number().positive().optional(),
+  referenceSpeed: z.number().positive().optional(),
+  capacity: z.number().positive().optional(),
+  hasEPL: z.boolean().optional(),
+  year: z.number().min(2023).max(2050).optional(),
+  
+  // Calculated Results (computed automatically)
   eexi: z.number().optional(),
   ciiRating: z.enum(["A", "B", "C", "D", "E"]).optional(),
   ciiValue: z.number().optional(),
   fuelEUStatus: z.string().optional(),
   euETSCost: z.number().optional(),
+  imoGFICost: z.number().optional(),
+  fuelCost: z.number().optional(),
+  totalCost: z.number().optional(),
 });
 
 export type ShipInfo = z.infer<typeof shipInfoSchema>;
