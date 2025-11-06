@@ -1,5 +1,4 @@
 import { useState, useEffect } from "react";
-import { Link } from "wouter";
 import { nanoid } from "nanoid";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ShipInfoForm } from "@/components/ShipInfoForm";
@@ -236,12 +235,6 @@ export default function Calculator() {
               </div>
             </div>
             <div className="flex items-center gap-3">
-              <Link href="/fleet">
-                <Button variant="outline" data-testid="button-fleet-nav">
-                  <Ship className="h-4 w-4" />
-                  Fleet
-                </Button>
-              </Link>
               <ThemeToggle />
             </div>
           </div>
