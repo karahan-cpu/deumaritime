@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link } from "wouter";
-import { Plus, Calculator } from "lucide-react";
+import { Plus, Calculator, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import {
@@ -17,70 +17,98 @@ import { ThemeToggle } from "@/components/ThemeToggle";
 import type { FleetVessel } from "@shared/schema";
 import { nanoid } from "nanoid";
 
+const DEFAULT_VESSELS: FleetVessel[] = [
+  {
+    id: "1",
+    vesselName: "Bulk carrier 1",
+    type: undefined,
+    dwt: undefined,
+    buildYear: undefined,
+    eexi: 3.6,
+    ciiRating: "E",
+    ciiValue: 4.6,
+    fuelEUStatus: undefined,
+    euETSCost: undefined,
+  },
+  {
+    id: "2",
+    vesselName: "Bulk carrier 2",
+    type: undefined,
+    dwt: undefined,
+    buildYear: undefined,
+    eexi: 3.6,
+    ciiRating: "D",
+    ciiValue: 4.2,
+    fuelEUStatus: undefined,
+    euETSCost: undefined,
+  },
+  {
+    id: "3",
+    vesselName: "Container 1",
+    type: undefined,
+    dwt: undefined,
+    buildYear: undefined,
+    eexi: 25,
+    ciiRating: "C",
+    ciiValue: 20.4,
+    fuelEUStatus: undefined,
+    euETSCost: undefined,
+  },
+  {
+    id: "4",
+    vesselName: "Container 2",
+    type: undefined,
+    dwt: undefined,
+    buildYear: undefined,
+    eexi: 25,
+    ciiRating: "C",
+    ciiValue: 20,
+    fuelEUStatus: undefined,
+    euETSCost: undefined,
+  },
+  {
+    id: "5",
+    vesselName: "Container 3",
+    type: undefined,
+    dwt: undefined,
+    buildYear: undefined,
+    eexi: 17.51,
+    ciiRating: "A",
+    ciiValue: 11.9,
+    fuelEUStatus: undefined,
+    euETSCost: undefined,
+  },
+];
+
+const STORAGE_KEY = "fleet_vessels";
+
+function loadVesselsFromStorage(): FleetVessel[] {
+  try {
+    const stored = localStorage.getItem(STORAGE_KEY);
+    if (stored) {
+      return JSON.parse(stored);
+    }
+  } catch (error) {
+    console.error("Failed to load fleet vessels from storage:", error);
+  }
+  return DEFAULT_VESSELS;
+}
+
+function saveVesselsToStorage(vessels: FleetVessel[]): void {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(vessels));
+  } catch (error) {
+    console.error("Failed to save fleet vessels to storage:", error);
+  }
+}
+
 export default function Fleet() {
-  const [vessels, setVessels] = useState<FleetVessel[]>([
-    {
-      id: "1",
-      vesselName: "Bulk carrier 1",
-      type: undefined,
-      dwt: undefined,
-      buildYear: undefined,
-      eexi: 3.6,
-      ciiRating: "E",
-      ciiValue: 4.6,
-      fuelEUStatus: undefined,
-      euETSCost: undefined,
-    },
-    {
-      id: "2",
-      vesselName: "Bulk carrier 2",
-      type: undefined,
-      dwt: undefined,
-      buildYear: undefined,
-      eexi: 3.6,
-      ciiRating: "D",
-      ciiValue: 4.2,
-      fuelEUStatus: undefined,
-      euETSCost: undefined,
-    },
-    {
-      id: "3",
-      vesselName: "Container 1",
-      type: undefined,
-      dwt: undefined,
-      buildYear: undefined,
-      eexi: 25,
-      ciiRating: "C",
-      ciiValue: 20.4,
-      fuelEUStatus: undefined,
-      euETSCost: undefined,
-    },
-    {
-      id: "4",
-      vesselName: "Container 2",
-      type: undefined,
-      dwt: undefined,
-      buildYear: undefined,
-      eexi: 25,
-      ciiRating: "C",
-      ciiValue: 20,
-      fuelEUStatus: undefined,
-      euETSCost: undefined,
-    },
-    {
-      id: "5",
-      vesselName: "Container 3",
-      type: undefined,
-      dwt: undefined,
-      buildYear: undefined,
-      eexi: 17.51,
-      ciiRating: "A",
-      ciiValue: 11.9,
-      fuelEUStatus: undefined,
-      euETSCost: undefined,
-    },
-  ]);
+  const [vessels, setVessels] = useState<FleetVessel[]>(loadVesselsFromStorage);
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+
+  useEffect(() => {
+    saveVesselsToStorage(vessels);
+  }, [vessels]);
 
   const handleAddVessel = (vessel: Omit<FleetVessel, "id">) => {
     const newVessel: FleetVessel = {
@@ -89,6 +117,12 @@ export default function Fleet() {
     };
     setVessels([...vessels, newVessel]);
     setIsAddDialogOpen(false);
+  };
+
+  const handleDeleteVessel = (id: string) => {
+    if (confirm("Are you sure you want to delete this vessel?")) {
+      setVessels(vessels.filter((v) => v.id !== id));
+    }
   };
 
   const getCIIBadgeColor = (rating?: string) => {
@@ -158,12 +192,13 @@ export default function Fleet() {
                   <TableHead className="text-white font-semibold dark:text-white">CII Value</TableHead>
                   <TableHead className="text-white font-semibold dark:text-white">FuelEU Status</TableHead>
                   <TableHead className="text-white font-semibold dark:text-white">EU ETS Cost</TableHead>
+                  <TableHead className="text-white font-semibold dark:text-white">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {vessels.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">
+                    <TableCell colSpan={10} className="text-center py-8 text-muted-foreground">
                       No vessels added yet. Click "Add Vessel" to get started.
                     </TableCell>
                   </TableRow>
@@ -192,6 +227,16 @@ export default function Fleet() {
                       <TableCell>{vessel.ciiValue || "N/A"}</TableCell>
                       <TableCell>{vessel.fuelEUStatus || "N/A"}</TableCell>
                       <TableCell>{vessel.euETSCost || "N/A"}</TableCell>
+                      <TableCell>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleDeleteVessel(vessel.id)}
+                          data-testid={`button-delete-${vessel.id}`}
+                        >
+                          <Trash2 className="h-4 w-4 text-destructive" />
+                        </Button>
+                      </TableCell>
                     </TableRow>
                   ))
                 )}
