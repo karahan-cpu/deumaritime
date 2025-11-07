@@ -147,3 +147,13 @@ export type IMOGFIInput = z.infer<typeof imoGFIInputSchema>;
 export type ShipbuildingCostInput = z.infer<typeof shipbuildingCostInputSchema>;
 export type FuelCostInput = z.infer<typeof fuelCostInputSchema>;
 export type FleetVessel = z.infer<typeof fleetVesselSchema>;
+
+// User types for storage (if needed for future authentication)
+export const userSchema = z.object({
+  id: z.string(),
+  username: z.string(),
+  password: z.string().optional(),
+});
+
+export type User = z.infer<typeof userSchema>;
+export type InsertUser = Omit<User, "id">;

@@ -127,8 +127,3 @@ Preferred communication style: Simple, everyday language.
 - clsx + tailwind-merge for className composition
 - nanoid for unique ID generation
 - wouter for routing
-
-**Replit-Specific**:
-- @replit/vite-plugin-runtime-error-modal for error overlays
-- @replit/vite-plugin-cartographer for development insights
-- @replit/vite-plugin-dev-banner for development mode indicator
