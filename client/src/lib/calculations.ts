@@ -94,6 +94,41 @@ export function calculateEEXI(
   return (totalEmissions / transportWork) * 1000000000;
 }
 
+export function calculateEEXIFromEngines(
+  mainEngines: Array<{ power: number; sfc: number; fuelType: string }>,
+  auxiliaryEngines: Array<{ power: number; sfc: number; fuelType: string }>,
+  speed: number,
+  capacity: number,
+  hasEPL: boolean
+): number {
+  const powerFactor = hasEPL ? 0.83 : 0.75;
+  let totalMainEmissions = 0;
+  let totalAuxEmissions = 0;
+
+  // Sum emissions from all main engines (skip engines with 0 power)
+  for (const engine of mainEngines || []) {
+    if (engine.power > 0 && engine.sfc > 0) {
+      const cf = getCO2Factor(engine.fuelType);
+      const emissions = (cf * engine.sfc * engine.power * powerFactor) / 1000000;
+      totalMainEmissions += emissions;
+    }
+  }
+
+  // Sum emissions from all auxiliary engines (skip engines with 0 power)
+  for (const engine of auxiliaryEngines || []) {
+    if (engine.power > 0 && engine.sfc > 0) {
+      const cf = getCO2Factor(engine.fuelType);
+      const emissions = (cf * engine.sfc * engine.power * powerFactor) / 1000000;
+      totalAuxEmissions += emissions;
+    }
+  }
+
+  const totalEmissions = totalMainEmissions + totalAuxEmissions;
+  const transportWork = capacity * speed;
+  if (transportWork === 0) return 0;
+  return (totalEmissions / transportWork) * 1000000000;
+}
+
 export function calculateRequiredEEXI(
   shipType: string,
   capacity: number,

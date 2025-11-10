@@ -46,6 +46,15 @@ export const engineInfoSchema = z.object({
   sfc: z.number().positive().optional(),
 });
 
+export const engineRowSchema = z.object({
+  power: z.number().nonnegative("Power must be non-negative").default(0),
+  sfc: z.number().positive("SFC must be positive").default(190),
+  fuelType: z.string().default("HFO"),
+  engineType: z.enum(["two_stroke", "four_stroke"]).optional(),
+  manufacturer: z.string().optional(),
+  model: z.string().optional(),
+});
+
 export const eediInputSchema = z.object({
   mainEnginePower: z.number().positive("Main engine power must be positive"),
   mainEngineSFC: z.number().positive("SFC must be positive"),
@@ -60,15 +69,18 @@ export const eediInputSchema = z.object({
 });
 
 export const eexiInputSchema = z.object({
-  mainEnginePower: z.number().positive(),
-  mainEngineSFC: z.number().positive(),
-  auxiliaryPower: z.number().positive(),
-  auxiliarySFC: z.number().positive(),
-  speed: z.number().positive(),
-  capacity: z.number().positive(),
-  fuelType: z.string(),
-  hasEPL: z.boolean(),
-  // Optional additions
+  mainEnginePower: z.number().positive().optional(),
+  mainEngineSFC: z.number().positive().optional(),
+  auxiliaryPower: z.number().positive().optional(),
+  auxiliarySFC: z.number().positive().optional(),
+  speed: z.number().nonnegative().default(0),
+  capacity: z.number().nonnegative().default(0),
+  fuelType: z.string().optional(),
+  hasEPL: z.boolean().default(false),
+  // Engine rows (new approach)
+  mainEngines: z.array(engineRowSchema).default([]),
+  auxiliaryEngines: z.array(engineRowSchema).default([]),
+  // Legacy fields (optional, for backwards compatibility)
   engineInfo: engineInfoSchema.optional(),
   fuelRows: z.array(fuelRowSchema).optional(),
 });
@@ -162,6 +174,7 @@ export const fleetVesselSchema = z.object({
 export type ShipInfo = z.infer<typeof shipInfoSchema>;
 export type FuelRow = z.infer<typeof fuelRowSchema>;
 export type EngineInfo = z.infer<typeof engineInfoSchema>;
+export type EngineRow = z.infer<typeof engineRowSchema>;
 export type EEDIInput = z.infer<typeof eediInputSchema>;
 export type EEXIInput = z.infer<typeof eexiInputSchema>;
 export type CIIInput = z.infer<typeof ciiInputSchema>;

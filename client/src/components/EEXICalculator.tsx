@@ -1,18 +1,17 @@
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { eexiInputSchema, fuelTypes, type EEXIInput } from "@shared/schema";
+import { eexiInputSchema, type EEXIInput, type EngineRow } from "@shared/schema";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { FileText } from "lucide-react";
-import { useMemo, useState } from "react";
-import { calculateEEXI, calculateRequiredEEXI, sumEnergyAndEmissions } from "@/lib/calculations";
+import { useState } from "react";
+import { calculateEEXIFromEngines, calculateRequiredEEXI } from "@/lib/calculations";
 import { ComplianceBadge } from "./ComplianceBadge";
-import { FuelRowsList, type FuelRow } from "./FuelRowsList";
+import { EngineRowsList } from "./EngineRowsList";
 
 interface EEXICalculatorProps {
   shipType: string;
@@ -30,35 +29,38 @@ export function EEXICalculator({ shipType, yearBuilt, onResultCalculated }: EEXI
   const form = useForm<EEXIInput>({
     resolver: zodResolver(eexiInputSchema),
     defaultValues: {
-      mainEnginePower: 0,
-      mainEngineSFC: 190,
-      auxiliaryPower: 0,
-      auxiliarySFC: 215,
       speed: 0,
       capacity: 0,
-      fuelType: "HFO",
       hasEPL: false,
-      engineInfo: { engineType: 'two_stroke', count: 1 },
-      fuelRows: [],
+      mainEngines: [{ power: 0, sfc: 190, fuelType: "HFO" }],
+      auxiliaryEngines: [],
     },
   });
 
-  const fuelRows = form.watch("fuelRows") as unknown as FuelRow[];
-  const derived = useMemo(() => {
-    if (!fuelRows || fuelRows.length === 0) return null;
-    const { totalEnergyMJ } = sumEnergyAndEmissions(fuelRows);
-    return { totalEnergyUsed: totalEnergyMJ };
-  }, [fuelRows]);
+  const mainEngines = (form.watch("mainEngines") as EngineRow[]) || [];
+  const auxiliaryEngines = (form.watch("auxiliaryEngines") as EngineRow[]) || [];
 
   const handleCalculate = (data: EEXIInput) => {
-    const attained = calculateEEXI(
-      data.mainEnginePower,
-      data.mainEngineSFC,
-      data.auxiliaryPower,
-      data.auxiliarySFC,
+    const mainEnginesList = (data.mainEngines as EngineRow[]) || [];
+    const auxiliaryEnginesList = (data.auxiliaryEngines as EngineRow[]) || [];
+
+    // Check if there's at least one engine with valid power
+    const hasValidMainEngine = mainEnginesList.some(e => e.power > 0 && e.sfc > 0);
+    const hasValidAuxEngine = auxiliaryEnginesList.some(e => e.power > 0 && e.sfc > 0);
+
+    if (!hasValidMainEngine && !hasValidAuxEngine) {
+      return; // Cannot calculate without valid engines
+    }
+
+    if (data.speed <= 0 || data.capacity <= 0) {
+      return; // Cannot calculate without speed and capacity
+    }
+
+    const attained = calculateEEXIFromEngines(
+      mainEnginesList,
+      auxiliaryEnginesList,
       data.speed,
       data.capacity,
-      data.fuelType,
       data.hasEPL
     );
 
@@ -91,22 +93,6 @@ export function EEXICalculator({ shipType, yearBuilt, onResultCalculated }: EEXI
           <form onSubmit={form.handleSubmit(handleCalculate)} className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-2">
-                <Label htmlFor="mainEnginePower">Main Engine Power (kW)</Label>
-                <Input id="mainEnginePower" type="number" step="0.01" {...form.register("mainEnginePower", { valueAsNumber: true })} placeholder="e.g., 12500" />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="mainEngineSFC">Main Engine SFC (g/kWh)</Label>
-                <Input id="mainEngineSFC" type="number" step="0.01" {...form.register("mainEngineSFC", { valueAsNumber: true })} placeholder="Default: 190" />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="auxiliaryPower">Auxiliary Power (kW)</Label>
-                <Input id="auxiliaryPower" type="number" step="0.01" {...form.register("auxiliaryPower", { valueAsNumber: true })} placeholder="e.g., 850" />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="auxiliarySFC">Auxiliary SFC (g/kWh)</Label>
-                <Input id="auxiliarySFC" type="number" step="0.01" {...form.register("auxiliarySFC", { valueAsNumber: true })} placeholder="Default: 215" />
-              </div>
-              <div className="space-y-2">
                 <Label htmlFor="speed">Reference Speed (knots)</Label>
                 <Input id="speed" type="number" step="0.01" {...form.register("speed", { valueAsNumber: true })} placeholder="e.g., 14.5" />
               </div>
@@ -114,54 +100,25 @@ export function EEXICalculator({ shipType, yearBuilt, onResultCalculated }: EEXI
                 <Label htmlFor="capacity">Capacity (DWT)</Label>
                 <Input id="capacity" type="number" step="0.01" {...form.register("capacity", { valueAsNumber: true })} placeholder="e.g., 85000" />
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="fuelType">Fuel Type</Label>
-                <Select value={form.watch("fuelType")} onValueChange={(value) => form.setValue("fuelType", value)}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {fuelTypes.map((fuel) => (
-                      <SelectItem key={fuel.value} value={fuel.value}>
-                        {fuel.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
             </div>
 
             <div className="space-y-3 pt-2 border-t">
-              <h4 className="font-semibold">Main Engine</h4>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-1">
-                  <Label>Engine Type</Label>
-                  <Select value={form.watch("engineInfo.engineType") || 'two_stroke'} onValueChange={(v) => form.setValue("engineInfo", { ...(form.getValues("engineInfo") || { count: 1 }), engineType: v as any })}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="two_stroke">2‑stroke</SelectItem>
-                      <SelectItem value="four_stroke">4‑stroke</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-1">
-                  <Label>Engine Count</Label>
-                  <Input type="number" value={form.watch("engineInfo.count") ?? 1} onChange={(e) => form.setValue("engineInfo", { ...(form.getValues("engineInfo") || {}), count: parseInt(e.target.value || '1', 10) })} />
-                </div>
-                <div className="space-y-1">
-                  <Label>Manufacturer</Label>
-                  <Input value={form.watch("engineInfo.manufacturer") || ''} onChange={(e) => form.setValue("engineInfo", { ...(form.getValues("engineInfo") || {}), manufacturer: e.target.value })} />
-                </div>
-                <div className="space-y-1">
-                  <Label>Model</Label>
-                  <Input value={form.watch("engineInfo.model") || ''} onChange={(e) => form.setValue("engineInfo", { ...(form.getValues("engineInfo") || {}), model: e.target.value })} />
-                </div>
-              </div>
+              <EngineRowsList
+                title="Main Engines"
+                value={mainEngines}
+                onChange={(rows) => form.setValue("mainEngines", rows as any, { shouldDirty: true })}
+              />
             </div>
 
-            <div className="flex items-center justify-between">
+            <div className="space-y-3 pt-2 border-t">
+              <EngineRowsList
+                title="Auxiliary Engines"
+                value={auxiliaryEngines}
+                onChange={(rows) => form.setValue("auxiliaryEngines", rows as any, { shouldDirty: true })}
+              />
+            </div>
+
+            <div className="flex items-center justify-between pt-2 border-t">
               <div className="space-y-1">
                 <Label htmlFor="hasEPL">EPL (Engine Power Limitation)</Label>
                 <p className="text-xs text-muted-foreground">Apply 83% derating when enabled</p>
@@ -169,15 +126,19 @@ export function EEXICalculator({ shipType, yearBuilt, onResultCalculated }: EEXI
               <Switch id="hasEPL" checked={form.watch("hasEPL")} onCheckedChange={(v) => form.setValue("hasEPL", v)} />
             </div>
 
-            <div className="space-y-3 pt-2 border-t">
-              <h4 className="font-semibold">Fuel Consumption (optional)</h4>
-              <FuelRowsList value={(fuelRows as FuelRow[]) || []} onChange={(rows) => form.setValue("fuelRows", rows as any, { shouldDirty: true })} />
-              {derived && (
-                <p className="text-xs text-muted-foreground">Derived total energy from rows: <span className="font-mono">{derived.totalEnergyUsed.toLocaleString(undefined, { maximumFractionDigits: 0 })} MJ</span> (for reference)</p>
-              )}
-            </div>
-
-            <Button type="submit" className="w-full" data-testid="button-calculate-eexi">Calculate EEXI</Button>
+            <Button 
+              type="submit" 
+              className="w-full" 
+              data-testid="button-calculate-eexi" 
+              disabled={
+                (mainEngines.length === 0 && auxiliaryEngines.length === 0) ||
+                (!mainEngines.some(e => e.power > 0 && e.sfc > 0) && !auxiliaryEngines.some(e => e.power > 0 && e.sfc > 0)) ||
+                form.watch("speed") <= 0 ||
+                form.watch("capacity") <= 0
+              }
+            >
+              Calculate EEXI
+            </Button>
           </form>
         </CardContent>
       </Card>
