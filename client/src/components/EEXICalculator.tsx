@@ -9,9 +9,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { FileText } from "lucide-react";
-import { useState } from "react";
-import { calculateEEXI, calculateRequiredEEXI } from "@/lib/calculations";
+import { useMemo, useState } from "react";
+import { calculateEEXI, calculateRequiredEEXI, sumEnergyAndEmissions } from "@/lib/calculations";
 import { ComplianceBadge } from "./ComplianceBadge";
+import { FuelRowsList, type FuelRow } from "./FuelRowsList";
 
 interface EEXICalculatorProps {
   shipType: string;
@@ -38,8 +39,16 @@ export function EEXICalculator({ shipType, yearBuilt, onResultCalculated }: EEXI
       fuelType: "HFO",
       hasEPL: false,
       engineInfo: { engineType: 'two_stroke', count: 1 },
+      fuelRows: [],
     },
   });
+
+  const fuelRows = form.watch("fuelRows") as unknown as FuelRow[];
+  const derived = useMemo(() => {
+    if (!fuelRows || fuelRows.length === 0) return null;
+    const { totalEnergyMJ } = sumEnergyAndEmissions(fuelRows);
+    return { totalEnergyUsed: totalEnergyMJ };
+  }, [fuelRows]);
 
   const handleCalculate = (data: EEXIInput) => {
     const attained = calculateEEXI(
@@ -158,6 +167,14 @@ export function EEXICalculator({ shipType, yearBuilt, onResultCalculated }: EEXI
                 <p className="text-xs text-muted-foreground">Apply 83% derating when enabled</p>
               </div>
               <Switch id="hasEPL" checked={form.watch("hasEPL")} onCheckedChange={(v) => form.setValue("hasEPL", v)} />
+            </div>
+
+            <div className="space-y-3 pt-2 border-t">
+              <h4 className="font-semibold">Fuel Consumption (optional)</h4>
+              <FuelRowsList value={(fuelRows as FuelRow[]) || []} onChange={(rows) => form.setValue("fuelRows", rows as any, { shouldDirty: true })} />
+              {derived && (
+                <p className="text-xs text-muted-foreground">Derived total energy from rows: <span className="font-mono">{derived.totalEnergyUsed.toLocaleString(undefined, { maximumFractionDigits: 0 })} MJ</span> (for reference)</p>
+              )}
             </div>
 
             <Button type="submit" className="w-full" data-testid="button-calculate-eexi">Calculate EEXI</Button>
