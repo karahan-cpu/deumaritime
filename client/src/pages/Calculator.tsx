@@ -67,64 +67,66 @@ export default function Calculator() {
   return (
     <div className="min-h-screen bg-background">
       <header className="sticky top-0 z-50 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-primary/10 rounded-lg">
-                <Anchor className="h-6 w-6 text-primary" />
+        <div className="container mx-auto px-3 sm:px-4 py-3 sm:py-4">
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
+              <div className="p-1.5 sm:p-2 bg-primary/10 rounded-lg flex-shrink-0">
+                <Anchor className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />
               </div>
-              <div>
-                <h1 className="text-xl font-bold">Maritime Emissions Calculator</h1>
-                <p className="text-sm text-muted-foreground">EEDI · EEXI · CII · FuelEU · EU ETS · GFI</p>
+              <div className="min-w-0 flex-1">
+                <h1 className="text-base sm:text-xl font-bold truncate">Maritime Emissions Calculator</h1>
+                <p className="text-xs sm:text-sm text-muted-foreground hidden sm:block">EEDI · EEXI · CII · FuelEU · EU ETS · GFI</p>
               </div>
             </div>
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
               <ThemeToggle />
             </div>
           </div>
         </div>
       </header>
 
-      <main className="container mx-auto px-4 py-8 max-w-7xl">
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-3 lg:grid-cols-10 gap-2">
-            <TabsTrigger value="ship-info" className="gap-2" data-testid="tab-ship-info">
-              <Anchor className="h-4 w-4" />
+      <main className="container mx-auto px-3 sm:px-4 py-4 sm:py-8 max-w-7xl">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4 sm:space-y-6">
+          <div className="overflow-x-auto -mx-3 sm:mx-0 px-3 sm:px-0">
+            <TabsList className="inline-flex w-auto min-w-full sm:grid sm:grid-cols-3 lg:grid-cols-10 gap-1.5 sm:gap-2 h-auto p-1">
+            <TabsTrigger value="ship-info" className="gap-1.5 sm:gap-2 text-xs sm:text-sm whitespace-nowrap px-2 sm:px-3" data-testid="tab-ship-info">
+              <Anchor className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
               <span className="hidden sm:inline">Ship Info</span>
             </TabsTrigger>
             {shipInfo?.isNewBuild && (
-              <TabsTrigger value="eedi" className="gap-2" data-testid="tab-eedi">
-                <FileText className="h-4 w-4" />
+              <TabsTrigger value="eedi" className="gap-1.5 sm:gap-2 text-xs sm:text-sm whitespace-nowrap px-2 sm:px-3" data-testid="tab-eedi">
+                <FileText className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                 <span className="hidden sm:inline">EEDI</span>
               </TabsTrigger>
             )}
-            <TabsTrigger value="cii" className="gap-2" disabled={!shipInfo} data-testid="tab-cii">
-              <TrendingDown className="h-4 w-4" />
+            <TabsTrigger value="cii" className="gap-1.5 sm:gap-2 text-xs sm:text-sm whitespace-nowrap px-2 sm:px-3" disabled={!shipInfo} data-testid="tab-cii">
+              <TrendingDown className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
               <span className="hidden sm:inline">CII</span>
             </TabsTrigger>
-            <TabsTrigger value="fueleu" className="gap-2" disabled={!shipInfo} data-testid="tab-fueleu">
-              <Euro className="h-4 w-4" />
+            <TabsTrigger value="fueleu" className="gap-1.5 sm:gap-2 text-xs sm:text-sm whitespace-nowrap px-2 sm:px-3" disabled={!shipInfo} data-testid="tab-fueleu">
+              <Euro className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
               <span className="hidden sm:inline">FuelEU</span>
             </TabsTrigger>
-            <TabsTrigger value="euets" className="gap-2" disabled={!shipInfo} data-testid="tab-euets">
-              <DollarSign className="h-4 w-4" />
+            <TabsTrigger value="euets" className="gap-1.5 sm:gap-2 text-xs sm:text-sm whitespace-nowrap px-2 sm:px-3" disabled={!shipInfo} data-testid="tab-euets">
+              <DollarSign className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
               <span className="hidden sm:inline">EU ETS</span>
             </TabsTrigger>
-            <TabsTrigger value="imogfi" className="gap-2" disabled={!shipInfo} data-testid="tab-imogfi">
-              <Globe className="h-4 w-4" />
+            <TabsTrigger value="imogfi" className="gap-1.5 sm:gap-2 text-xs sm:text-sm whitespace-nowrap px-2 sm:px-3" disabled={!shipInfo} data-testid="tab-imogfi">
+              <Globe className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
               <span className="hidden sm:inline">IMO GFI</span>
             </TabsTrigger>
-            <TabsTrigger value="costs" className="gap-2" disabled={!shipInfo} data-testid="tab-costs">
-              <Ship className="h-4 w-4" />
+            <TabsTrigger value="costs" className="gap-1.5 sm:gap-2 text-xs sm:text-sm whitespace-nowrap px-2 sm:px-3" disabled={!shipInfo} data-testid="tab-costs">
+              <Ship className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
               <span className="hidden sm:inline">Costs</span>
             </TabsTrigger>
-            <TabsTrigger value="summary" className="gap-2" disabled={!shipInfo} data-testid="tab-summary">
-              <BarChart3 className="h-4 w-4" />
+            <TabsTrigger value="summary" className="gap-1.5 sm:gap-2 text-xs sm:text-sm whitespace-nowrap px-2 sm:px-3" disabled={!shipInfo} data-testid="tab-summary">
+              <BarChart3 className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
               <span className="hidden sm:inline">Summary</span>
             </TabsTrigger>
           </TabsList>
+          </div>
 
-          <TabsContent value="ship-info" className="space-y-6">
+          <TabsContent value="ship-info" className="space-y-4 sm:space-y-6">
             <ShipInfoForm onSubmit={handleShipInfoSubmit} defaultValues={shipInfo || undefined} />
             
             {!shipInfo && (
@@ -135,8 +137,8 @@ export default function Calculator() {
                     Calculate compliance with all major maritime emission regulations
                   </CardDescription>
                 </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <CardContent className="space-y-3 sm:space-y-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                     <div className="p-4 border rounded-lg">
                       <h3 className="font-semibold mb-2">EEDI / EEXI</h3>
                       <p className="text-sm text-muted-foreground">
@@ -215,10 +217,10 @@ export default function Calculator() {
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <div className="space-y-6">
+                  <div className="space-y-4 sm:space-y-6">
                     {/* Ship Info Summary */}
                     {shipInfo && (
-                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pb-4 border-b">
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 pb-3 sm:pb-4 border-b">
                         <div>
                           <div className="text-sm text-muted-foreground">Ship Type</div>
                           <div className="font-semibold">{shipInfo.shipType}</div>
@@ -241,8 +243,8 @@ export default function Calculator() {
                     {/* EEDI Results */}
                     {eediResult && (
                       <div className="space-y-2">
-                        <h3 className="font-semibold text-lg">EEDI (Energy Efficiency Design Index)</h3>
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <h3 className="font-semibold text-base sm:text-lg">EEDI (Energy Efficiency Design Index)</h3>
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
                           <div>
                             <div className="text-sm text-muted-foreground">Attained EEDI</div>
                             <div className="text-xl font-bold font-mono">{eediResult.attained.toFixed(2)}</div>
@@ -278,8 +280,8 @@ export default function Calculator() {
                     {/* FuelEU Results */}
                     {fuelEUResult && (
                       <div className="space-y-2">
-                        <h3 className="font-semibold text-lg">FuelEU Maritime</h3>
-                        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                        <h3 className="font-semibold text-base sm:text-lg">FuelEU Maritime</h3>
+                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
                           <div>
                             <div className="text-sm text-muted-foreground">GHG Intensity</div>
                             <div className="text-xl font-bold font-mono">{fuelEUResult.intensity.toFixed(2)}</div>
@@ -309,8 +311,8 @@ export default function Calculator() {
                     {/* EU ETS Results */}
                     {euETSResult && (
                       <div className="space-y-2">
-                        <h3 className="font-semibold text-lg">EU ETS (Emissions Trading System)</h3>
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <h3 className="font-semibold text-base sm:text-lg">EU ETS (Emissions Trading System)</h3>
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
                           <div>
                             <div className="text-sm text-muted-foreground">Allowances Needed</div>
                             <div className="text-xl font-bold font-mono">
@@ -363,8 +365,8 @@ export default function Calculator() {
         </Tabs>
       </main>
 
-      <footer className="border-t py-6 mt-12">
-        <div className="container mx-auto px-4 text-center text-muted-foreground text-sm">
+      <footer className="border-t py-4 sm:py-6 mt-6 sm:mt-12">
+        <div className="container mx-auto px-3 sm:px-4 text-center text-muted-foreground text-xs sm:text-sm">
           2025 Maritime Calculator by Karahan Karakurt
         </div>
       </footer>
