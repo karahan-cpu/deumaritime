@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ShipInfoForm } from "@/components/ShipInfoForm";
 import { EEDICalculator } from "@/components/EEDICalculator";
+import { EEXICalculator } from "@/components/EEXICalculator";
 import { CIICalculator } from "@/components/CIICalculator";
 import { FuelEUCalculator } from "@/components/FuelEUCalculator";
 import { EUETSCalculator } from "@/components/EUETSCalculator";
@@ -20,6 +21,12 @@ import type { ShipInfo } from "@shared/schema";
 import { calculateIMOGFI, calculateFuelCost } from "@/lib/calculations";
 
 interface EEDIResult {
+  attained: number;
+  required: number;
+  compliant: boolean;
+}
+
+interface EEXIResult {
   attained: number;
   required: number;
   compliant: boolean;
@@ -51,6 +58,7 @@ export default function Calculator() {
   const [shipInfo, setShipInfo] = useState<ShipInfo | null>(null);
   const [activeTab, setActiveTab] = useState("ship-info");
   const [eediResult, setEediResult] = useState<EEDIResult | null>(null);
+  const [eexiResult, setEexiResult] = useState<EEXIResult | null>(null);
   const [ciiResult, setCiiResult] = useState<CIIResult | null>(null);
   const [fuelEUResult, setFuelEUResult] = useState<FuelEUResult | null>(null);
   const [euETSResult, setEuETSResult] = useState<EUETSResult | null>(null);
@@ -97,6 +105,12 @@ export default function Calculator() {
               <TabsTrigger value="eedi" className="gap-1.5 sm:gap-2 text-xs sm:text-sm whitespace-nowrap px-2 sm:px-3" data-testid="tab-eedi">
                 <FileText className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                 <span className="hidden sm:inline">EEDI</span>
+              </TabsTrigger>
+            )}
+            {!shipInfo?.isNewBuild && (
+              <TabsTrigger value="eexi" className="gap-1.5 sm:gap-2 text-xs sm:text-sm whitespace-nowrap px-2 sm:px-3" data-testid="tab-eexi">
+                <FileText className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                <span className="hidden sm:inline">EEXI</span>
               </TabsTrigger>
             )}
             <TabsTrigger value="cii" className="gap-1.5 sm:gap-2 text-xs sm:text-sm whitespace-nowrap px-2 sm:px-3" disabled={!shipInfo} data-testid="tab-cii">
@@ -177,6 +191,18 @@ export default function Calculator() {
                 yearBuilt={shipInfo.yearBuilt}
                 onResultCalculated={setEediResult}
               />
+            </TabsContent>
+          )}
+
+          {!shipInfo?.isNewBuild && (
+            <TabsContent value="eexi">
+              {shipInfo && (
+                <EEXICalculator
+                  shipType={shipInfo.shipType}
+                  yearBuilt={shipInfo.yearBuilt}
+                  onResultCalculated={setEexiResult}
+                />
+              )}
             </TabsContent>
           )}
 
@@ -265,6 +291,31 @@ export default function Calculator() {
                       </div>
                     )}
 
+                    {/* EEXI Results */}
+                    {eexiResult && (
+                      <div className="space-y-2">
+                        <h3 className="font-semibold text-base sm:text-lg">EEXI (Existing Ship Efficiency)</h3>
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
+                          <div>
+                            <div className="text-sm text-muted-foreground">Attained EEXI</div>
+                            <div className="text-xl font-bold font-mono">{eexiResult.attained.toFixed(2)}</div>
+                            <div className="text-xs text-muted-foreground">gCO₂/tonne-nm</div>
+                          </div>
+                          <div>
+                            <div className="text-sm text-muted-foreground">Required EEXI</div>
+                            <div className="text-xl font-bold font-mono">{eexiResult.required.toFixed(2)}</div>
+                            <div className="text-xs text-muted-foreground">gCO₂/tonne-nm</div>
+                          </div>
+                          <div>
+                            <div className="text-sm text-muted-foreground">Status</div>
+                            <div className="mt-1">
+                              <ComplianceBadge status={eexiResult.compliant ? "compliant" : "non-compliant"} />
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
                     {/* CII Results */}
                     {ciiResult && (
                       <div className="space-y-2">
@@ -334,7 +385,7 @@ export default function Calculator() {
                       </div>
                     )}
 
-                    {!eediResult && !ciiResult && !fuelEUResult && !euETSResult && (
+                    {!eediResult && !eexiResult && !ciiResult && !fuelEUResult && !euETSResult && (
                       <div className="text-center py-12 text-muted-foreground">
                         Complete calculations in each tab to see the summary
                       </div>

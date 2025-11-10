@@ -55,8 +55,42 @@ export function calculateEEXI(
   fuelType: string,
   hasEPL: boolean
 ): number {
+  const cf = getCO2Factor(fuelType);
   const powerFactor = hasEPL ? 0.83 : 0.75;
-  return calculateEEDI(mainPower, mainSFC, auxPower, auxSFC, speed, capacity, fuelType);
+
+  const mainEmissions = (cf * mainSFC * mainPower * powerFactor) / 1000000;
+  const auxEmissions = (cf * auxSFC * auxPower * powerFactor) / 1000000;
+  const totalEmissions = mainEmissions + auxEmissions;
+  const transportWork = capacity * speed;
+  return (totalEmissions / transportWork) * 1000000000;
+}
+
+export function calculateRequiredEEXI(
+  shipType: string,
+  capacity: number,
+  year: number
+): number {
+  // Mirror EEDI reference lines for a reasonable default and apply EEXI reductions
+  const referencelines: Record<string, { a: number; c: number }> = {
+    "Bulk Carrier": { a: 961.79, c: 0.477 },
+    "Oil Tanker": { a: 1218.80, c: 0.488 },
+    "Chemical Tanker": { a: 1218.80, c: 0.488 },
+    "LNG Carrier": { a: 2253.7, c: 0.474 },
+    "Container Ship": { a: 174.22, c: 0.201 },
+    "General Cargo": { a: 107.48, c: 0.216 },
+    "RoRo Cargo": { a: 752.16, c: 0.381 },
+    "Refrigerated Cargo": { a: 227.01, c: 0.244 },
+  };
+
+  const ref = referencelines[shipType] || referencelines["Bulk Carrier"];
+  const baseline = ref.a * Math.pow(capacity, -ref.c);
+
+  // EEXI reduction (approximation): 20% from 2023, 30% from 2025+
+  let reductionFactor = 0;
+  if (year >= 2025) reductionFactor = 0.30;
+  else if (year >= 2023) reductionFactor = 0.20;
+
+  return baseline * (1 - reductionFactor);
 }
 
 export function calculateCII(
