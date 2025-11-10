@@ -7,9 +7,10 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Euro } from "lucide-react";
-import { useState } from "react";
-import { calculateFuelEUCompliance } from "@/lib/calculations";
+import { useMemo, useState } from "react";
+import { calculateFuelEUCompliance, sumEnergyAndEmissions } from "@/lib/calculations";
 import { ComplianceBadge } from "./ComplianceBadge";
+import { FuelRowsList, type FuelRow } from "./FuelRowsList";
 
 interface FuelEUCalculatorProps {
   onResultCalculated?: (result: { intensity: number; limit: number; penalty: number; compliance: boolean }) => void;
@@ -31,16 +32,24 @@ export function FuelEUCalculator({ onResultCalculated }: FuelEUCalculatorProps =
       euPortCalls: 0,
       intraEUVoyages: 0,
       year: 2025,
+      fuelRows: [],
     },
   });
 
+  const fuelRows = form.watch("fuelRows") as unknown as FuelRow[];
+
+  const derived = useMemo(() => {
+    if (!fuelRows || fuelRows.length === 0) return null;
+    const { totalEnergyMJ, ghgKg } = sumEnergyAndEmissions(fuelRows);
+    return { totalEnergyUsed: totalEnergyMJ, ghgEmissions: ghgKg * 1000 }; // kg→g
+  }, [fuelRows]);
+
   const handleCalculate = (data: FuelEUInput) => {
-    const res = calculateFuelEUCompliance(data.totalEnergyUsed, data.ghgEmissions, data.year);
+    const totalEnergy = derived?.totalEnergyUsed || data.totalEnergyUsed;
+    const ghg = derived?.ghgEmissions || data.ghgEmissions;
+    const res = calculateFuelEUCompliance(totalEnergy, ghg, data.year);
     setResult(res);
-    if (onResultCalculated) {
-      onResultCalculated(res);
-    }
-    console.log("FuelEU calculated:", res);
+    onResultCalculated?.(res);
   };
 
   return (
@@ -62,6 +71,26 @@ export function FuelEUCalculator({ onResultCalculated }: FuelEUCalculatorProps =
         </CardHeader>
         <CardContent>
           <form onSubmit={form.handleSubmit(handleCalculate)} className="space-y-6">
+            <div className="space-y-4">
+              <FuelRowsList
+                title="2. Fuel Consumption"
+                value={(fuelRows as FuelRow[]) || []}
+                onChange={(rows) => form.setValue("fuelRows", rows as any, { shouldDirty: true })}
+              />
+              {derived && (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
+                  <div className="p-3 rounded border">
+                    <div className="text-muted-foreground">Derived Total Energy</div>
+                    <div className="font-mono font-semibold">{derived.totalEnergyUsed.toLocaleString(undefined, { maximumFractionDigits: 0 })} MJ</div>
+                  </div>
+                  <div className="p-3 rounded border">
+                    <div className="text-muted-foreground">Derived GHG Emissions</div>
+                    <div className="font-mono font-semibold">{derived.ghgEmissions.toLocaleString(undefined, { maximumFractionDigits: 0 })} gCO₂eq</div>
+                  </div>
+                </div>
+              )}
+            </div>
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-2">
                 <Label htmlFor="totalEnergyUsed">Total Energy Used (MJ)</Label>

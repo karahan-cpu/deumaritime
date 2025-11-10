@@ -8,6 +8,8 @@ A comprehensive maritime emissions and compliance calculator for ship owners. Ca
 ## Features
 
 - **EEDI / EEXI Calculator**: Energy efficiency design index for new builds and existing ships
+- **Main Engine Selection**: Engine type (2‑stroke/4‑stroke), count, manufacturer/model, SFC override
+- **Dynamic Fuel Rows**: Add/remove fuel types with per‑fuel consumption; used to derive FuelEU totals
 - **CII Rating**: Annual carbon intensity indicator with A-E rating system
 - **FuelEU Maritime**: GHG intensity limits and penalty calculations for EU operations
 - **EU ETS**: Emissions trading system allowance costs for EU ports

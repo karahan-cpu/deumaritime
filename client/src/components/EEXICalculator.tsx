@@ -37,6 +37,7 @@ export function EEXICalculator({ shipType, yearBuilt, onResultCalculated }: EEXI
       capacity: 0,
       fuelType: "HFO",
       hasEPL: false,
+      engineInfo: { engineType: 'two_stroke', count: 1 },
     },
   });
 
@@ -119,11 +120,46 @@ export function EEXICalculator({ shipType, yearBuilt, onResultCalculated }: EEXI
                   </SelectContent>
                 </Select>
               </div>
-              <div className="flex items-center justify-between py-2">
-                <Label htmlFor="hasEPL">EPL (Engine Power Limitation)</Label>
-                <Switch id="hasEPL" checked={form.watch("hasEPL")} onCheckedChange={(v) => form.setValue("hasEPL", v)} />
+            </div>
+
+            <div className="space-y-3 pt-2 border-t">
+              <h4 className="font-semibold">Main Engine</h4>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-1">
+                  <Label>Engine Type</Label>
+                  <Select value={form.watch("engineInfo.engineType") || 'two_stroke'} onValueChange={(v) => form.setValue("engineInfo", { ...(form.getValues("engineInfo") || { count: 1 }), engineType: v as any })}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="two_stroke">2‑stroke</SelectItem>
+                      <SelectItem value="four_stroke">4‑stroke</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1">
+                  <Label>Engine Count</Label>
+                  <Input type="number" value={form.watch("engineInfo.count") ?? 1} onChange={(e) => form.setValue("engineInfo", { ...(form.getValues("engineInfo") || {}), count: parseInt(e.target.value || '1', 10) })} />
+                </div>
+                <div className="space-y-1">
+                  <Label>Manufacturer</Label>
+                  <Input value={form.watch("engineInfo.manufacturer") || ''} onChange={(e) => form.setValue("engineInfo", { ...(form.getValues("engineInfo") || {}), manufacturer: e.target.value })} />
+                </div>
+                <div className="space-y-1">
+                  <Label>Model</Label>
+                  <Input value={form.watch("engineInfo.model") || ''} onChange={(e) => form.setValue("engineInfo", { ...(form.getValues("engineInfo") || {}), model: e.target.value })} />
+                </div>
               </div>
             </div>
+
+            <div className="flex items-center justify-between">
+              <div className="space-y-1">
+                <Label htmlFor="hasEPL">EPL (Engine Power Limitation)</Label>
+                <p className="text-xs text-muted-foreground">Apply 83% derating when enabled</p>
+              </div>
+              <Switch id="hasEPL" checked={form.watch("hasEPL")} onCheckedChange={(v) => form.setValue("hasEPL", v)} />
+            </div>
+
             <Button type="submit" className="w-full" data-testid="button-calculate-eexi">Calculate EEXI</Button>
           </form>
         </CardContent>

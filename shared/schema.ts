@@ -32,6 +32,20 @@ export const shipInfoSchema = z.object({
   isNewBuild: z.boolean(),
 });
 
+// New shared schemas
+export const fuelRowSchema = z.object({
+  fuelType: z.string(),
+  tons: z.number().positive().default(0),
+});
+
+export const engineInfoSchema = z.object({
+  engineType: z.enum(["two_stroke", "four_stroke"]).default("two_stroke"),
+  count: z.number().int().positive().default(1),
+  manufacturer: z.string().optional(),
+  model: z.string().optional(),
+  sfc: z.number().positive().optional(),
+});
+
 export const eediInputSchema = z.object({
   mainEnginePower: z.number().positive("Main engine power must be positive"),
   mainEngineSFC: z.number().positive("SFC must be positive"),
@@ -40,6 +54,9 @@ export const eediInputSchema = z.object({
   referenceSpeed: z.number().positive("Reference speed must be positive"),
   capacity: z.number().positive("Capacity must be positive"),
   fuelType: z.string(),
+  // Optional additions
+  engineInfo: engineInfoSchema.optional(),
+  fuelRows: z.array(fuelRowSchema).optional(),
 });
 
 export const eexiInputSchema = z.object({
@@ -51,6 +68,9 @@ export const eexiInputSchema = z.object({
   capacity: z.number().positive(),
   fuelType: z.string(),
   hasEPL: z.boolean(),
+  // Optional additions
+  engineInfo: engineInfoSchema.optional(),
+  fuelRows: z.array(fuelRowSchema).optional(),
 });
 
 export const ciiInputSchema = z.object({
@@ -67,6 +87,8 @@ export const fuelEUInputSchema = z.object({
   euPortCalls: z.number().int().positive(),
   intraEUVoyages: z.number().int().nonnegative(),
   year: z.number().min(2025).max(2050),
+  // Optional dynamic rows for deriving totals instead of direct input
+  fuelRows: z.array(fuelRowSchema).optional(),
 });
 
 export const euETSInputSchema = z.object({
@@ -138,6 +160,8 @@ export const fleetVesselSchema = z.object({
 });
 
 export type ShipInfo = z.infer<typeof shipInfoSchema>;
+export type FuelRow = z.infer<typeof fuelRowSchema>;
+export type EngineInfo = z.infer<typeof engineInfoSchema>;
 export type EEDIInput = z.infer<typeof eediInputSchema>;
 export type EEXIInput = z.infer<typeof eexiInputSchema>;
 export type CIIInput = z.infer<typeof ciiInputSchema>;

@@ -8,11 +8,13 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { FuelRowsList, type FuelRow } from "./FuelRowsList";
 
 export function FuelCostCalculator({ onCalculate }: { 
   onCalculate?: (result: ReturnType<typeof calculateFuelCost>) => void 
 }) {
   const [result, setResult] = useState<ReturnType<typeof calculateFuelCost> | null>(null);
+  const [rows, setRows] = useState<FuelRow[]>([]);
 
   const form = useForm<FuelCostInput>({
     resolver: zodResolver(fuelCostInputSchema),
@@ -237,6 +239,10 @@ export function FuelCostCalculator({ onCalculate }: {
                   ${result.totalCost.toLocaleString()}
                 </p>
               </div>
+            </div>
+
+            <div className="pt-4 border-t">
+              <FuelRowsList title="Additional Fuel Lines (optional)" value={rows} onChange={setRows} />
             </div>
 
             <div className="text-xs text-muted-foreground bg-muted p-3 rounded">

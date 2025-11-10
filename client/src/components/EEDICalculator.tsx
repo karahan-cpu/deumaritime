@@ -36,6 +36,7 @@ export function EEDICalculator({ shipType, isNewBuild, yearBuilt, onResultCalcul
       referenceSpeed: 0,
       capacity: 0,
       fuelType: "HFO",
+      engineInfo: { engineType: 'two_stroke', count: 1 },
     },
   });
 
@@ -170,6 +171,36 @@ export function EEDICalculator({ shipType, isNewBuild, yearBuilt, onResultCalcul
                     ))}
                   </SelectContent>
                 </Select>
+              </div>
+            </div>
+
+            <div className="space-y-3 pt-2 border-t">
+              <h4 className="font-semibold">Main Engine</h4>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-1">
+                  <Label>Engine Type</Label>
+                  <Select value={form.watch("engineInfo.engineType") || 'two_stroke'} onValueChange={(v) => form.setValue("engineInfo", { ...(form.getValues("engineInfo") || { count: 1 }), engineType: v as any })}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="two_stroke">2‑stroke</SelectItem>
+                      <SelectItem value="four_stroke">4‑stroke</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1">
+                  <Label>Engine Count</Label>
+                  <Input type="number" value={form.watch("engineInfo.count") ?? 1} onChange={(e) => form.setValue("engineInfo", { ...(form.getValues("engineInfo") || {}), count: parseInt(e.target.value || '1', 10) })} />
+                </div>
+                <div className="space-y-1">
+                  <Label>Manufacturer</Label>
+                  <Input value={form.watch("engineInfo.manufacturer") || ''} onChange={(e) => form.setValue("engineInfo", { ...(form.getValues("engineInfo") || {}), manufacturer: e.target.value })} />
+                </div>
+                <div className="space-y-1">
+                  <Label>Model</Label>
+                  <Input value={form.watch("engineInfo.model") || ''} onChange={(e) => form.setValue("engineInfo", { ...(form.getValues("engineInfo") || {}), model: e.target.value })} />
+                </div>
               </div>
             </div>
 

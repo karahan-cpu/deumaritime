@@ -5,6 +5,35 @@ export function getCO2Factor(fuelType: string): number {
   return fuel?.cf || 3.114;
 }
 
+// Lower Heating Values (approx, MJ/kg). Multiplied by 1000 to convert MT→kg
+const LHV_MJ_PER_KG: Record<string, number> = {
+  HFO: 40.4,
+  MDO: 42.7,
+  MGO: 42.7,
+  LNG: 50.0,
+  Methanol: 19.9,
+  Ammonia: 18.6,
+  LPG: 46.0,
+};
+
+export function lhvForFuel(fuelType: string): number {
+  return LHV_MJ_PER_KG[fuelType] ?? 40.0;
+}
+
+export function sumEnergyAndEmissions(rows: { fuelType: string; tons: number }[]): { totalEnergyMJ: number; ghgKg: number } {
+  let totalEnergyMJ = 0;
+  let ghgKg = 0;
+  for (const r of rows) {
+    const tons = Math.max(0, r.tons || 0);
+    const lhv = lhvForFuel(r.fuelType);
+    const cf = getCO2Factor(r.fuelType);
+    const kg = tons * 1000; // metric tons → kg
+    totalEnergyMJ += kg * lhv;
+    ghgKg += kg * cf; // rough WtT factor proxy using cf (kgCO2/kg fuel)
+  }
+  return { totalEnergyMJ, ghgKg };
+}
+
 export function calculateEEDI(
   mainPower: number,
   mainSFC: number,
