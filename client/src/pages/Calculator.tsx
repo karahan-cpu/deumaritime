@@ -13,15 +13,11 @@ import { CostSummaryCard } from "@/components/CostSummaryCard";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Anchor, FileText, TrendingDown, Euro, DollarSign, BarChart3, Ship, Fuel, Globe } from "lucide-react";
+import { Anchor, FileText, TrendingDown, Euro, DollarSign, BarChart3, Ship, Fuel, Globe, Gauge, Beaker, ClipboardList, ArrowLeftRight } from "lucide-react";
 import { CIIRatingDisplay } from "@/components/CIIRatingDisplay";
 import { CIIForecastTable } from "@/components/CIIForecastTable";
 import { ComplianceBadge } from "@/components/ComplianceBadge";
 import { GHGIntensityChart } from "@/components/GHGIntensityChart";
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import type { ShipInfo } from "@shared/schema";
 import { calculateIMOGFI, calculateFuelCost } from "@/lib/calculations";
 
@@ -146,109 +142,38 @@ export default function Calculator() {
           </div>
 
           <TabsContent value="ship-info" className="space-y-4 sm:space-y-6">
-            <Card>
-              <CardContent className="pt-6">
-                <Accordion type="multiple" defaultValue={["ship", "voyage"]} className="w-full">
-                  <AccordionItem value="ship" className="border-b">
-                    <AccordionTrigger className="text-base font-semibold hover:no-underline">
-                      Ship
-                    </AccordionTrigger>
-                    <AccordionContent className="pt-4">
-                      <div className="space-y-4">
-                        <div className="space-y-2">
-                          <Label htmlFor="shipNameAccordion">Ship name</Label>
-                          <Input
-                            id="shipNameAccordion"
-                            placeholder="QUEEN JASMIN"
-                            defaultValue={shipInfo?.shipName || ""}
-                            className="w-full"
-                          />
-                        </div>
-                      </div>
-                    </AccordionContent>
-                  </AccordionItem>
+            <div className="flex gap-6">
+              {/* Sidebar Navigation */}
+              <aside className="w-64 flex-shrink-0 border-r pr-6">
+                <nav className="space-y-1">
+                  <button className="w-full flex items-center gap-3 px-3 py-2 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-accent rounded-md transition-colors">
+                    <Gauge className="h-4 w-4" />
+                    Dashboard
+                  </button>
+                  <button className="w-full flex items-center gap-3 px-3 py-2 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-accent rounded-md transition-colors">
+                    <Beaker className="h-4 w-4" />
+                    Analyser
+                  </button>
+                  <button className="w-full flex items-center gap-3 px-3 py-2 text-sm font-medium text-foreground bg-accent rounded-md">
+                    <ClipboardList className="h-4 w-4" />
+                    Estimator
+                  </button>
+                  <button className="w-full flex items-center gap-3 px-3 py-2 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-accent rounded-md transition-colors">
+                    <BarChart3 className="h-4 w-4" />
+                    Ship Finder
+                  </button>
+                  <button className="w-full flex items-center gap-3 px-3 py-2 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-accent rounded-md transition-colors">
+                    <ArrowLeftRight className="h-4 w-4" />
+                    Risk manager
+                  </button>
+                </nav>
+              </aside>
 
-                  <AccordionItem value="voyage" className="border-b">
-                    <AccordionTrigger className="text-base font-semibold hover:no-underline">
-                      Voyage
-                    </AccordionTrigger>
-                    <AccordionContent className="pt-4">
-                      <div className="space-y-4">
-                        <div className="space-y-2">
-                          <Label>Previous discharge port</Label>
-                          <RadioGroup defaultValue="Sillamae" className="flex gap-4">
-                            <div className="flex items-center space-x-2">
-                              <RadioGroupItem value="Sillamae" id="previous-sillamae" />
-                              <Label htmlFor="previous-sillamae" className="font-normal cursor-pointer">Sillamae</Label>
-                            </div>
-                          </RadioGroup>
-                        </div>
-                        <div className="space-y-2">
-                          <Label htmlFor="loadPort">Load port</Label>
-                          <Input
-                            id="loadPort"
-                            placeholder="Rotterdam"
-                            className="w-full"
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <Label htmlFor="loadCargo">Cargo quantity</Label>
-                          <Input
-                            id="loadCargo"
-                            placeholder="38 000 mt"
-                            className="w-full"
-                          />
-                        </div>
-                        <Button type="button" variant="ghost" className="w-full justify-start">
-                          <span className="mr-2">+</span> Add new...
-                        </Button>
-                        <div className="space-y-2">
-                          <Label>Discharge port</Label>
-                          <RadioGroup defaultValue="Singapore" className="flex gap-4">
-                            <div className="flex items-center space-x-2">
-                              <RadioGroupItem value="Singapore" id="discharge-singapore" />
-                              <Label htmlFor="discharge-singapore" className="font-normal cursor-pointer">Singapore</Label>
-                            </div>
-                          </RadioGroup>
-                        </div>
-                        <div className="space-y-2">
-                          <Label htmlFor="dischargeCargo">Cargo quantity</Label>
-                          <Input
-                            id="dischargeCargo"
-                            placeholder="51 565 mt"
-                            className="w-full"
-                          />
-                        </div>
-                      </div>
-                    </AccordionContent>
-                  </AccordionItem>
-
-                  <AccordionItem value="consumption" className="border-b">
-                    <AccordionTrigger className="text-base font-semibold hover:no-underline">
-                      Consumption
-                    </AccordionTrigger>
-                    <AccordionContent className="pt-4">
-                      <div className="space-y-4">
-                        <p className="text-sm text-muted-foreground">Fuel consumption details will be added here.</p>
-                      </div>
-                    </AccordionContent>
-                  </AccordionItem>
-
-                  <AccordionItem value="costs" className="border-b">
-                    <AccordionTrigger className="text-base font-semibold hover:no-underline">
-                      Costs
-                    </AccordionTrigger>
-                    <AccordionContent className="pt-4">
-                      <div className="space-y-4">
-                        <p className="text-sm text-muted-foreground">Cost details will be added here.</p>
-                      </div>
-                    </AccordionContent>
-                  </AccordionItem>
-                </Accordion>
-              </CardContent>
-            </Card>
-
-            <ShipInfoForm onSubmit={handleShipInfoSubmit} defaultValues={shipInfo || undefined} />
+              {/* Main Content */}
+              <div className="flex-1">
+                <ShipInfoForm onSubmit={handleShipInfoSubmit} defaultValues={shipInfo || undefined} />
+              </div>
+            </div>
             
             {!shipInfo && (
               <Card>
