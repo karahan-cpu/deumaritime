@@ -462,13 +462,14 @@ export default function Calculator() {
             </div>
           </TabsContent>
         </Tabs>
-      </main>
+        </main>
 
-      <footer className="border-t py-4 sm:py-6 mt-6 sm:mt-12">
-        <div className="container mx-auto px-3 sm:px-4 text-center text-muted-foreground text-xs sm:text-sm">
-          2025 Maritime Calculator by Karahan Karakurt
-        </div>
-      </footer>
+        <footer className="border-t py-4 sm:py-6 mt-6 sm:mt-12">
+          <div className="px-3 sm:px-4 text-center text-muted-foreground text-xs sm:text-sm">
+            2025 Maritime Calculator by Karahan Karakurt
+          </div>
+        </footer>
+      </div>
     </div>
   );
 }
