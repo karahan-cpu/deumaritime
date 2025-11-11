@@ -20,7 +20,7 @@ import { ComplianceBadge } from "@/components/ComplianceBadge";
 import { GHGIntensityChart } from "@/components/GHGIntensityChart";
 import { FleetSimulator, type Vessel } from "@/components/FleetSimulator";
 import type { ShipInfo } from "@shared/schema";
-import { calculateIMOGFI, calculateFuelCost } from "@/lib/calculations";
+import { calculateIMOGFI, calculateFuelCost, calculateRequiredCII, getCIIRating } from "@/lib/calculations";
 import { nanoid } from "nanoid";
 
 interface EEDIResult {
@@ -77,9 +77,22 @@ export default function Calculator() {
   };
 
   const handleAddToFleet = (data: ShipInfo) => {
+    const attainedCII = ciiResult?.attained;
+    let ciiRatingEOL: string | undefined;
+
+    if (attainedCII && data.deadweight > 0) {
+      try {
+        const required2040 = calculateRequiredCII(data.shipType, data.deadweight, 2040);
+        ciiRatingEOL = getCIIRating(attainedCII, required2040);
+      } catch (error) {
+        console.error("Failed to calculate CII rating for 2040:", error);
+      }
+    }
+
     const newVessel: Vessel = {
       ...data,
       id: nanoid(),
+      ciiRatingEOL,
     };
     setFleet([...fleet, newVessel]);
     setShipInfo(data);
