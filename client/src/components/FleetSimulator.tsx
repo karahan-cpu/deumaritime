@@ -126,7 +126,14 @@ export function FleetSimulator({ vessels, onDeleteVessel, onEditVessel, onAddVes
                       {formatPercentage(vessel.sumReductionEOL)}
                     </TableCell>
                     <TableCell className="text-center">
-                      {formatRating(vessel.ciiRatingEOL)}
+                      <div className="flex flex-col items-center">
+                        <span className="font-semibold">
+                          {formatRating(vessel.ciiRatingEOL)}
+                        </span>
+                        <span className="text-[10px] uppercase tracking-wide text-muted-foreground">
+                          {vessel.endOfLifetime ?? 2040}
+                        </span>
+                      </div>
                     </TableCell>
                     <TableCell className="text-right font-mono">
                       {formatNumber(vessel.endOfLifetime)}
