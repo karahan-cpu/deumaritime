@@ -47,9 +47,27 @@ export function FuelEUCalculator({ onResultCalculated }: FuelEUCalculatorProps =
   const handleCalculate = (data: FuelEUInput) => {
     const totalEnergy = derived?.totalEnergyUsed || data.totalEnergyUsed;
     const ghg = derived?.ghgEmissions || data.ghgEmissions;
-    const res = calculateFuelEUCompliance(totalEnergy, ghg, data.year);
-    setResult(res);
-    onResultCalculated?.(res);
+
+    // Validate inputs
+    if (!totalEnergy || totalEnergy <= 0) {
+      form.setError("totalEnergyUsed", { message: "Total energy must be greater than 0" });
+      return;
+    }
+
+    if (ghg < 0) {
+      form.setError("ghgEmissions", { message: "GHG emissions cannot be negative" });
+      return;
+    }
+
+    try {
+      const res = calculateFuelEUCompliance(totalEnergy, ghg, data.year);
+      setResult(res);
+      onResultCalculated?.(res);
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Unknown calculation error';
+      console.error("FuelEU calculation error:", err);
+      form.setError("root", { message: errorMessage });
+    }
   };
 
   return (
@@ -150,7 +168,21 @@ export function FuelEUCalculator({ onResultCalculated }: FuelEUCalculatorProps =
               </div>
             </div>
 
-            <Button type="submit" className="w-full" data-testid="button-calculate-fueleu">
+            {form.formState.errors.root && (
+              <div className="p-3 bg-destructive/10 border border-destructive/20 rounded-md">
+                <p className="text-sm text-destructive">{form.formState.errors.root.message}</p>
+              </div>
+            )}
+
+            <Button 
+              type="submit" 
+              className="w-full" 
+              data-testid="button-calculate-fueleu"
+              disabled={
+                (!derived && (!form.watch("totalEnergyUsed") || form.watch("totalEnergyUsed") <= 0)) ||
+                (!derived && (!form.watch("ghgEmissions") || form.watch("ghgEmissions") < 0))
+              }
+            >
               Calculate FuelEU Compliance
             </Button>
           </form>

@@ -370,9 +370,23 @@ export function calculateFuelEUCompliance(
   ghgEmissions: number,
   year: number
 ): { intensity: number; limit: number; penalty: number; compliance: boolean } {
-  const intensity = (ghgEmissions / totalEnergy) * 1000;
+  // Validate inputs
+  if (!totalEnergy || totalEnergy <= 0) {
+    throw new Error("Total energy must be greater than 0");
+  }
+  if (ghgEmissions < 0) {
+    throw new Error("GHG emissions cannot be negative");
+  }
+
+  // FuelEU Maritime formula: GHG Intensity = Total GHG Emissions / Total Energy
+  // Units: ghgEmissions (gCO₂eq) / totalEnergy (MJ) = gCO₂eq/MJ
+  // Note: ghgEmissions should be in grams, totalEnergy in MJ
+  const intensity = ghgEmissions / totalEnergy;
   
+  // Baseline GHG intensity: 91.16 gCO₂eq/MJ (2020 reference)
   const baseline = 91.16;
+  
+  // Reduction targets by year (as fraction of baseline)
   const reductionTargets: Record<number, number> = {
     2025: 0.02, 2026: 0.02,
     2027: 0.04, 2028: 0.05, 2029: 0.056,
@@ -387,9 +401,23 @@ export function calculateFuelEUCompliance(
   const limit = baseline * (1 - reduction);
   
   const compliance = intensity <= limit;
+  
+  // Calculate penalty for non-compliance
+  // Penalty = (GHG Intensity Deficit × Total Energy × Penalty Rate)
+  // Where:
+  // - Deficit = (Intensity - Limit) in gCO₂eq/MJ
+  // - Total Energy in MJ
+  // - Penalty Rate in €/tonne CO₂eq
+  // Result: (gCO₂eq/MJ × MJ × €/tonne) = gCO₂eq × €/tonne
+  // Convert gCO₂eq to tonnes: divide by 1,000,000
+  // Final: €
   const deficit = Math.max(0, intensity - limit);
-  const penaltyRate = 2400;
-  const penalty = (deficit * totalEnergy * penaltyRate) / 1000;
+  const penaltyRate = 2400; // €/tonne CO₂eq (typical rate, may vary)
+  const penalty = (deficit * totalEnergy * penaltyRate) / 1000000; // Convert g to tonnes
+  
+  if (!isFinite(intensity) || intensity < 0) {
+    throw new Error("Invalid GHG intensity calculation result");
+  }
   
   return { intensity, limit, penalty, compliance };
 }
