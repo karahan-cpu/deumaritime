@@ -4,7 +4,24 @@ import { Button } from "@/components/ui/button";
 import { Trash2, Edit, Plus } from "lucide-react";
 import type { ShipInfo } from "@shared/schema";
 
-interface Vessel extends ShipInfo {
+interface FleetMetrics {
+  ciiScore2022?: number;
+  ciiRating2022?: string;
+  bestSister?: string;
+  eexiOrEedi?: number;
+  eeoi?: number;
+  sumReduction2026?: number;
+  ciiValue2026?: number;
+  ciiRating2026?: string;
+  sumReductionEOL?: number;
+  ciiRatingEOL?: string;
+  endOfLifetime?: number;
+  capex?: number;
+  opex?: number;
+  balanceEOL?: number;
+}
+
+export interface Vessel extends ShipInfo, Partial<FleetMetrics> {
   id: string;
 }
 
@@ -13,6 +30,21 @@ interface FleetSimulatorProps {
   onDeleteVessel: (id: string) => void;
   onEditVessel: (vessel: Vessel) => void;
   onAddVessel: () => void;
+}
+
+function formatNumber(value?: number, options?: Intl.NumberFormatOptions) {
+  if (value === undefined || Number.isNaN(value)) return "—";
+  return value.toLocaleString(undefined, options);
+}
+
+function formatPercentage(value?: number) {
+  if (value === undefined || Number.isNaN(value)) return "—";
+  return `${value.toFixed(1)}%`;
+}
+
+function formatRating(value?: string) {
+  if (!value) return "—";
+  return value.toUpperCase();
 }
 
 export function FleetSimulator({ vessels, onDeleteVessel, onEditVessel, onAddVessel }: FleetSimulatorProps) {
@@ -45,12 +77,22 @@ export function FleetSimulator({ vessels, onDeleteVessel, onEditVessel, onAddVes
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Ship Name</TableHead>
-                  <TableHead>Ship Type</TableHead>
-                  <TableHead className="text-right">Deadweight (DWT)</TableHead>
-                  <TableHead className="text-right">Gross Tonnage (GT)</TableHead>
-                  <TableHead className="text-right">Year Built</TableHead>
-                  <TableHead>New Build</TableHead>
+                  <TableHead>Vessel name</TableHead>
+                  <TableHead className="text-right">CII score 2022</TableHead>
+                  <TableHead className="text-center">CII rating 2022</TableHead>
+                  <TableHead>Best Sister</TableHead>
+                  <TableHead className="text-right">EEXI / EEDI</TableHead>
+                  <TableHead className="text-right">EEOI</TableHead>
+                  <TableHead className="text-right">Sum reduction 2026 (%)</TableHead>
+                  <TableHead className="text-right">CII value 2026</TableHead>
+                  <TableHead className="text-center">CII rating 2026</TableHead>
+                  <TableHead className="text-right">Sum reduction EOL (%)</TableHead>
+                  <TableHead className="text-center">CII rating EOL</TableHead>
+                  <TableHead className="text-right">End of lifetime</TableHead>
+                  <TableHead className="text-right">CAPEX</TableHead>
+                  <TableHead className="text-right">OPEX</TableHead>
+                  <TableHead className="text-right">CAPEX + OPEX</TableHead>
+                  <TableHead className="text-right">Balance EOL</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
@@ -58,20 +100,53 @@ export function FleetSimulator({ vessels, onDeleteVessel, onEditVessel, onAddVes
                 {vessels.map((vessel) => (
                   <TableRow key={vessel.id}>
                     <TableCell className="font-medium">{vessel.shipName}</TableCell>
-                    <TableCell>{vessel.shipType}</TableCell>
                     <TableCell className="text-right font-mono">
-                      {vessel.deadweight.toLocaleString()}
+                      {formatNumber(vessel.ciiScore2022, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </TableCell>
+                    <TableCell className="text-center">
+                      {formatRating(vessel.ciiRating2022)}
+                    </TableCell>
+                    <TableCell>{vessel.bestSister || "—"}</TableCell>
+                    <TableCell className="text-right font-mono">
+                      {formatNumber(vessel.eexiOrEedi, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                     </TableCell>
                     <TableCell className="text-right font-mono">
-                      {vessel.grossTonnage.toLocaleString()}
+                      {formatNumber(vessel.eeoi, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                     </TableCell>
-                    <TableCell className="text-right">{vessel.yearBuilt}</TableCell>
-                    <TableCell>
-                      {vessel.isNewBuild ? (
-                        <span className="text-green-600 dark:text-green-400">Yes</span>
-                      ) : (
-                        <span className="text-muted-foreground">No</span>
+                    <TableCell className="text-right font-mono">
+                      {formatPercentage(vessel.sumReduction2026)}
+                    </TableCell>
+                    <TableCell className="text-right font-mono">
+                      {formatNumber(vessel.ciiValue2026, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </TableCell>
+                    <TableCell className="text-center">
+                      {formatRating(vessel.ciiRating2026)}
+                    </TableCell>
+                    <TableCell className="text-right font-mono">
+                      {formatPercentage(vessel.sumReductionEOL)}
+                    </TableCell>
+                    <TableCell className="text-center">
+                      {formatRating(vessel.ciiRatingEOL)}
+                    </TableCell>
+                    <TableCell className="text-right font-mono">
+                      {formatNumber(vessel.endOfLifetime)}
+                    </TableCell>
+                    <TableCell className="text-right font-mono">
+                      {formatNumber(vessel.capex, { style: "currency", currency: "USD", maximumFractionDigits: 0 })}
+                    </TableCell>
+                    <TableCell className="text-right font-mono">
+                      {formatNumber(vessel.opex, { style: "currency", currency: "USD", maximumFractionDigits: 0 })}
+                    </TableCell>
+                    <TableCell className="text-right font-mono">
+                      {formatNumber(
+                        vessel.capex !== undefined && vessel.opex !== undefined
+                          ? vessel.capex + vessel.opex
+                          : undefined,
+                        { style: "currency", currency: "USD", maximumFractionDigits: 0 }
                       )}
+                    </TableCell>
+                    <TableCell className="text-right font-mono">
+                      {formatNumber(vessel.balanceEOL, { style: "currency", currency: "USD", maximumFractionDigits: 0 })}
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex items-center justify-end gap-2">

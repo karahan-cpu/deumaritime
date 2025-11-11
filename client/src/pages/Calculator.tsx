@@ -18,7 +18,7 @@ import { CIIRatingDisplay } from "@/components/CIIRatingDisplay";
 import { CIIForecastTable } from "@/components/CIIForecastTable";
 import { ComplianceBadge } from "@/components/ComplianceBadge";
 import { GHGIntensityChart } from "@/components/GHGIntensityChart";
-import { FleetSimulator } from "@/components/FleetSimulator";
+import { FleetSimulator, type Vessel } from "@/components/FleetSimulator";
 import type { ShipInfo } from "@shared/schema";
 import { calculateIMOGFI, calculateFuelCost } from "@/lib/calculations";
 import { nanoid } from "nanoid";
@@ -56,10 +56,6 @@ interface EUETSResult {
 
 type IMOGFIResult = ReturnType<typeof calculateIMOGFI>;
 type FuelCostResult = ReturnType<typeof calculateFuelCost>;
-
-interface Vessel extends ShipInfo {
-  id: string;
-}
 
 export default function Calculator() {
   const [shipInfo, setShipInfo] = useState<ShipInfo | null>(null);

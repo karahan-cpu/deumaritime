@@ -148,19 +148,14 @@ export function ShipInfoForm({ onSubmit, defaultValues, onAddToFleet, showAddToF
               Continue to Calculations
             </Button>
             {showAddToFleet && onAddToFleet && (
-              <Button 
-                type="button" 
-                variant="outline" 
+              <Button
+                type="button"
+                variant="outline"
                 className="flex-1"
-                onClick={() => {
-                  const data = form.getValues();
-                  if (form.formState.isValid) {
-                    onAddToFleet(data as ShipInfo);
-                    form.reset();
-                  } else {
-                    form.handleSubmit(onAddToFleet)();
-                  }
-                }}
+                onClick={form.handleSubmit((data) => {
+                  onAddToFleet(data);
+                  form.reset();
+                })}
               >
                 Add to Fleet
               </Button>
