@@ -84,6 +84,19 @@ export function EEXICalculator({ shipType, yearBuilt, onResultCalculated }: EEXI
       const compliant = attained <= required;
 
       const calculatedResult = { attained, required, compliant };
+      
+      // Debug logging (can be removed in production)
+      console.log("EEXI Calculation:", {
+        mainEngines: mainEnginesList.length,
+        auxiliaryEngines: auxiliaryEnginesList.length,
+        speed: data.speed,
+        capacity: data.capacity,
+        hasEPL: data.hasEPL,
+        attained,
+        required,
+        compliant,
+      });
+      
       setResult(calculatedResult);
       setError(null); // Clear any previous errors on success
       if (onResultCalculated) onResultCalculated(calculatedResult);

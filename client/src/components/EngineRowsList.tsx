@@ -44,7 +44,7 @@ export function EngineRowsList({ value, onChange, title }: {
       {rows.map((row, idx) => (
         <div key={idx} className="grid grid-cols-1 sm:grid-cols-12 gap-3 items-end">
           <div className="sm:col-span-4 space-y-1">
-            <Label>Power (kW) *</Label>
+            <Label>Power (kW MCR) *</Label>
             <Input 
               type="number" 
               step="0.01" 
@@ -56,6 +56,7 @@ export function EngineRowsList({ value, onChange, title }: {
               }}
               min="0"
             />
+            <p className="text-xs text-muted-foreground">Maximum Continuous Rating</p>
           </div>
           <div className="sm:col-span-3 space-y-1">
             <Label>SFC (g/kWh) *</Label>
@@ -70,6 +71,7 @@ export function EngineRowsList({ value, onChange, title }: {
               }}
               min="0.01"
             />
+            <p className="text-xs text-muted-foreground">At reference load</p>
           </div>
           <div className="sm:col-span-3 space-y-1">
             <Label>Fuel Type</Label>

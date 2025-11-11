@@ -84,14 +84,11 @@ export function calculateEEXI(
   fuelType: string,
   hasEPL: boolean
 ): number {
-  const cf = getCO2Factor(fuelType);
-  const powerFactor = hasEPL ? 0.83 : 0.75;
-
-  const mainEmissions = (cf * mainSFC * mainPower * powerFactor) / 1000000;
-  const auxEmissions = (cf * auxSFC * auxPower * powerFactor) / 1000000;
-  const totalEmissions = mainEmissions + auxEmissions;
-  const transportWork = capacity * speed;
-  return (totalEmissions / transportWork) * 1000000000;
+  // Legacy function - use calculateEEXIFromEngines instead
+  // This function is kept for backwards compatibility
+  const mainEngines = mainPower > 0 ? [{ power: mainPower, sfc: mainSFC, fuelType }] : [];
+  const auxiliaryEngines = auxPower > 0 ? [{ power: auxPower, sfc: auxSFC, fuelType }] : [];
+  return calculateEEXIFromEngines(mainEngines, auxiliaryEngines, speed, capacity, hasEPL);
 }
 
 export function calculateEEXIFromEngines(
@@ -106,44 +103,80 @@ export function calculateEEXIFromEngines(
     throw new Error("Speed and capacity must be greater than 0");
   }
 
-  const powerFactor = hasEPL ? 0.83 : 0.75;
+  // EEXI formula per IMO: EEXI = Σ(CF × SFC × P_ref) / (Capacity × Vref)
+  // Where:
+  // - CF = Carbon factor (gCO₂/g fuel)
+  // - SFC = Specific fuel consumption at reference condition (g/kWh)
+  // - P_ref = Engine power at reference condition (kW)
+  //   * Main engines: P_ref = 0.75 × MCR (or 0.75 × reduced MCR if EPL applied)
+  //   * Auxiliary engines: P_ref = 0.50 × MCR
+  // - Capacity = Deadweight tonnage (DWT) in tonnes
+  // - Vref = Reference speed in knots (nautical miles per hour)
+  // Result: gCO₂/(tonne-nm)
+  //
+  // Note: User inputs MCR power. SFC should be at reference condition (75% MCR for main, 50% for aux).
+  // If EPL is applied, it reduces the available MCR by ~17% (factor 0.83), then load factor is applied.
+  const mainLoadFactor = 0.75; // Main engines: 75% of available MCR
+  const auxLoadFactor = 0.50; // Auxiliary engines: 50% of MCR
+  const eplFactor = 0.83; // EPL reduces available MCR by 17% (typical: 0.80-0.85)
+  
   let totalMainEmissions = 0;
   let totalAuxEmissions = 0;
 
-  // Sum emissions from all main engines (skip engines with 0 power)
+  // Sum emissions from all main engines
+  // User inputs MCR power (kW) - this is the maximum continuous rating
+  // If EPL is applied: available MCR = MCR × 0.83 (reduced by EPL)
+  // Reference power: P_ref = available MCR × 0.75
+  // Formula: CF (gCO₂/g) × SFC (g/kWh) × P_ref (kW)
+  // Result: gCO₂/h per engine
   for (const engine of mainEngines || []) {
     if (engine && engine.power > 0 && engine.sfc > 0 && engine.fuelType) {
       const cf = getCO2Factor(engine.fuelType);
-      const emissions = (cf * engine.sfc * engine.power * powerFactor) / 1000000;
-      if (isFinite(emissions)) {
-        totalMainEmissions += emissions;
+      // Apply EPL to MCR first (if EPL is enabled), then apply load factor
+      const availableMCR = hasEPL ? engine.power * eplFactor : engine.power;
+      const referencePower = availableMCR * mainLoadFactor;
+      // Calculate emissions in gCO₂/h: CF × SFC × P_ref
+      const emissionsPerHour = cf * engine.sfc * referencePower;
+      if (isFinite(emissionsPerHour)) {
+        totalMainEmissions += emissionsPerHour;
       }
     }
   }
 
-  // Sum emissions from all auxiliary engines (skip engines with 0 power)
+  // Sum emissions from all auxiliary engines
+  // Auxiliary engines are NOT affected by EPL (EPL only applies to main propulsion)
+  // Reference power: P_ref = MCR × 0.50
   for (const engine of auxiliaryEngines || []) {
     if (engine && engine.power > 0 && engine.sfc > 0 && engine.fuelType) {
       const cf = getCO2Factor(engine.fuelType);
-      const emissions = (cf * engine.sfc * engine.power * powerFactor) / 1000000;
-      if (isFinite(emissions)) {
-        totalAuxEmissions += emissions;
+      // Auxiliary engines are not affected by EPL
+      const referencePower = engine.power * auxLoadFactor;
+      // Calculate emissions in gCO₂/h: CF × SFC × P_ref
+      const emissionsPerHour = cf * engine.sfc * referencePower;
+      if (isFinite(emissionsPerHour)) {
+        totalAuxEmissions += emissionsPerHour;
       }
     }
   }
 
-  const totalEmissions = totalMainEmissions + totalAuxEmissions;
-  const transportWork = capacity * speed;
+  const totalEmissionsPerHour = totalMainEmissions + totalAuxEmissions; // gCO₂/h
   
-  if (transportWork === 0) {
-    throw new Error("Transport work (capacity × speed) cannot be zero");
-  }
-
-  if (totalEmissions <= 0) {
+  if (totalEmissionsPerHour <= 0) {
     throw new Error("Total emissions must be greater than 0. Please check engine inputs.");
   }
 
-  const eexi = (totalEmissions / transportWork) * 1000000000;
+  // Transport work: Capacity (tonnes) × Vref (knots = nautical miles/hour)
+  // Result: tonne-nm/h
+  const transportWorkPerHour = capacity * speed; // tonne-nm/h
+  
+  if (transportWorkPerHour === 0) {
+    throw new Error("Transport work (capacity × speed) cannot be zero");
+  }
+
+  // EEXI formula: EEXI = Σ(CF × SFC × P) / (Capacity × Vref)
+  // Units: (gCO₂/h) / (tonne-nm/h) = gCO₂/(tonne-nm)
+  // The result is already in the correct units (gCO₂ per tonne-nautical mile)
+  const eexi = totalEmissionsPerHour / transportWorkPerHour;
   
   if (!isFinite(eexi) || eexi <= 0) {
     throw new Error("Invalid EEXI calculation result");
