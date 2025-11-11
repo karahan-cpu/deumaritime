@@ -330,11 +330,13 @@ export default function Calculator() {
                         </div>
                         {shipInfo && (
                           <CIIForecastTable
+                            vesselName={shipInfo.shipName}
                             shipType={shipInfo.shipType}
                             capacity={shipInfo.deadweight}
                             attainedCII={ciiResult.attained}
                             startYear={new Date().getFullYear()}
                             endYear={2040}
+                            currentYear={new Date().getFullYear()}
                           />
                         )}
                       </div>

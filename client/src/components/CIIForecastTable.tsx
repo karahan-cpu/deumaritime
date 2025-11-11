@@ -1,39 +1,61 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
 import { calculateRequiredCII, getCIIRating } from "@/lib/calculations";
 
 interface CIIForecastTableProps {
+  vesselName?: string;
   shipType: string;
   capacity: number;
   attainedCII: number;
   startYear: number;
   endYear: number;
+  currentYear?: number; // Year of actual data (before this is forecast)
 }
 
-export function CIIForecastTable({ shipType, capacity, attainedCII, startYear, endYear }: CIIForecastTableProps) {
-  const ratingColors = {
-    A: "bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300",
-    B: "bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300",
-    C: "bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300",
-    D: "bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300",
-    E: "bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300",
+export function CIIForecastTable({ 
+  vesselName, 
+  shipType, 
+  capacity, 
+  attainedCII, 
+  startYear, 
+  endYear,
+  currentYear 
+}: CIIForecastTableProps) {
+  // Bright colors for actual data (if currentYear is set)
+  const ratingColorsBright = {
+    A: "bg-green-500 text-white",
+    B: "bg-blue-500 text-white",
+    C: "bg-yellow-400 text-gray-900",
+    D: "bg-orange-500 text-white",
+    E: "bg-red-500 text-white",
+  };
+
+  // Dull colors for forecasted data
+  const ratingColorsDull = {
+    A: "bg-green-200 dark:bg-green-800/40 text-green-800 dark:text-green-200",
+    B: "bg-blue-200 dark:bg-blue-800/40 text-blue-800 dark:text-blue-200",
+    C: "bg-yellow-200 dark:bg-yellow-800/40 text-yellow-800 dark:text-yellow-200",
+    D: "bg-orange-200 dark:bg-orange-800/40 text-orange-800 dark:text-orange-200",
+    E: "bg-red-200 dark:bg-red-800/40 text-red-800 dark:text-red-200",
   };
 
   const forecastData = [];
   for (let year = startYear; year <= endYear; year++) {
     const requiredCII = calculateRequiredCII(shipType, capacity, year);
-    const ratio = attainedCII / requiredCII;
     const rating = getCIIRating(attainedCII, requiredCII) as "A" | "B" | "C" | "D" | "E";
-    forecastData.push({ year, requiredCII, ratio, rating });
+    const isForecast = currentYear ? year > currentYear : true;
+    forecastData.push({ year, rating, isForecast });
   }
+
+  const years = forecastData.map(d => d.year);
+  const displayName = vesselName || `${shipType} (${capacity.toLocaleString()} DWT)`;
 
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-lg">CII Rating Forecast ({startYear} - {endYear})</CardTitle>
+        <CardTitle className="text-lg">CII Rating Forecast</CardTitle>
         <p className="text-sm text-muted-foreground">
-          Projected CII ratings assuming constant attained CII of {attainedCII.toFixed(2)} gCO₂/tonne-nm
+          Forecasted ratings in dull colors. Assumes constant attained CII of {attainedCII.toFixed(2)} gCO₂/tonne-nm
         </p>
       </CardHeader>
       <CardContent>
@@ -41,27 +63,31 @@ export function CIIForecastTable({ shipType, capacity, attainedCII, startYear, e
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Year</TableHead>
-                <TableHead className="text-right">Required CII</TableHead>
-                <TableHead className="text-right">Attained CII</TableHead>
-                <TableHead className="text-right">Ratio</TableHead>
-                <TableHead className="text-center">Rating</TableHead>
+                <TableHead className="sticky left-0 z-10 bg-background min-w-[150px]">Vessel name</TableHead>
+                {years.map((year) => (
+                  <TableHead key={year} className="text-center min-w-[60px]">
+                    {year}
+                  </TableHead>
+                ))}
               </TableRow>
             </TableHeader>
             <TableBody>
-              {forecastData.map((row) => (
-                <TableRow key={row.year}>
-                  <TableCell className="font-medium">{row.year}</TableCell>
-                  <TableCell className="text-right font-mono">{row.requiredCII.toFixed(2)}</TableCell>
-                  <TableCell className="text-right font-mono">{attainedCII.toFixed(2)}</TableCell>
-                  <TableCell className="text-right font-mono">{(row.ratio * 100).toFixed(1)}%</TableCell>
-                  <TableCell className="text-center">
-                    <Badge className={ratingColors[row.rating]} variant="outline">
-                      {row.rating}
-                    </Badge>
-                  </TableCell>
-                </TableRow>
-              ))}
+              <TableRow>
+                <TableCell className="font-medium sticky left-0 z-10 bg-background">
+                  {displayName}
+                </TableCell>
+                {forecastData.map((data) => {
+                  const colors = data.isForecast ? ratingColorsDull : ratingColorsBright;
+                  return (
+                    <TableCell 
+                      key={data.year} 
+                      className={`text-center font-bold text-sm ${colors[data.rating]}`}
+                    >
+                      {data.rating}
+                    </TableCell>
+                  );
+                })}
+              </TableRow>
             </TableBody>
           </Table>
         </div>
