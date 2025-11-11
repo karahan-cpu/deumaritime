@@ -99,7 +99,12 @@ export function FleetSimulator({ vessels, onDeleteVessel, onEditVessel, onAddVes
               <TableBody>
                 {vessels.map((vessel) => (
                   <TableRow key={vessel.id}>
-                    <TableCell className="font-medium">{vessel.shipName}</TableCell>
+                    <TableCell className="font-medium">
+                      <div className="flex flex-col">
+                        <span>{vessel.shipName}</span>
+                        <span className="text-xs text-muted-foreground">{vessel.shipType}</span>
+                      </div>
+                    </TableCell>
                     <TableCell className="text-right font-mono">
                       {formatNumber(vessel.ciiScore2022, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                     </TableCell>
