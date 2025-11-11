@@ -78,6 +78,9 @@ export default function Calculator() {
       {/* Sidebar Navigation - Always Visible */}
       <aside className="w-64 flex-shrink-0 border-r bg-background">
         <div className="sticky top-0 h-screen overflow-y-auto p-4">
+          <div className="mb-6 pb-4 border-b">
+            <h2 className="text-lg font-semibold">Fleet Simulator</h2>
+          </div>
           <nav className="space-y-1">
             <button className="w-full flex items-center gap-3 px-3 py-2 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-accent rounded-md transition-colors">
               <Gauge className="h-4 w-4" />
