@@ -74,27 +74,57 @@ export default function Calculator() {
 
 
   return (
-    <div className="min-h-screen bg-background">
-      <header className="sticky top-0 z-50 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-        <div className="container mx-auto px-3 sm:px-4 py-3 sm:py-4">
-          <div className="flex items-center justify-between gap-2">
-            <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
-              <div className="p-1.5 sm:p-2 bg-primary/10 rounded-lg flex-shrink-0">
-                <Anchor className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />
+    <div className="min-h-screen bg-background flex">
+      {/* Sidebar Navigation - Always Visible */}
+      <aside className="w-64 flex-shrink-0 border-r bg-background">
+        <div className="sticky top-0 h-screen overflow-y-auto p-4">
+          <nav className="space-y-1">
+            <button className="w-full flex items-center gap-3 px-3 py-2 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-accent rounded-md transition-colors">
+              <Gauge className="h-4 w-4" />
+              Dashboard
+            </button>
+            <button className="w-full flex items-center gap-3 px-3 py-2 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-accent rounded-md transition-colors">
+              <Beaker className="h-4 w-4" />
+              Analyser
+            </button>
+            <button className="w-full flex items-center gap-3 px-3 py-2 text-sm font-medium text-foreground bg-accent rounded-md">
+              <ClipboardList className="h-4 w-4" />
+              Estimator
+            </button>
+            <button className="w-full flex items-center gap-3 px-3 py-2 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-accent rounded-md transition-colors">
+              <BarChart3 className="h-4 w-4" />
+              Ship Finder
+            </button>
+            <button className="w-full flex items-center gap-3 px-3 py-2 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-accent rounded-md transition-colors">
+              <ArrowLeftRight className="h-4 w-4" />
+              Risk manager
+            </button>
+          </nav>
+        </div>
+      </aside>
+
+      {/* Main Content Area */}
+      <div className="flex-1 flex flex-col min-w-0">
+        <header className="sticky top-0 z-50 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+          <div className="px-3 sm:px-4 py-3 sm:py-4">
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
+                <div className="p-1.5 sm:p-2 bg-primary/10 rounded-lg flex-shrink-0">
+                  <Anchor className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <h1 className="text-base sm:text-xl font-bold truncate">Maritime Emissions Calculator</h1>
+                  <p className="text-xs sm:text-sm text-muted-foreground hidden sm:block">EEDI · EEXI · CII · FuelEU · EU ETS · GFI</p>
+                </div>
               </div>
-              <div className="min-w-0 flex-1">
-                <h1 className="text-base sm:text-xl font-bold truncate">Maritime Emissions Calculator</h1>
-                <p className="text-xs sm:text-sm text-muted-foreground hidden sm:block">EEDI · EEXI · CII · FuelEU · EU ETS · GFI</p>
+              <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
+                <ThemeToggle />
               </div>
-            </div>
-            <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
-              <ThemeToggle />
             </div>
           </div>
-        </div>
-      </header>
+        </header>
 
-      <main className="container mx-auto px-3 sm:px-4 py-4 sm:py-8 max-w-7xl">
+        <main className="flex-1 overflow-y-auto px-3 sm:px-4 py-4 sm:py-8">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4 sm:space-y-6">
           <div className="overflow-x-auto -mx-3 sm:mx-0 px-3 sm:px-0">
             <TabsList className="inline-flex w-auto min-w-full sm:grid sm:grid-cols-3 lg:grid-cols-10 gap-1.5 sm:gap-2 h-auto p-1">
@@ -142,38 +172,7 @@ export default function Calculator() {
           </div>
 
           <TabsContent value="ship-info" className="space-y-4 sm:space-y-6">
-            <div className="flex gap-6">
-              {/* Sidebar Navigation */}
-              <aside className="w-64 flex-shrink-0 border-r pr-6">
-                <nav className="space-y-1">
-                  <button className="w-full flex items-center gap-3 px-3 py-2 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-accent rounded-md transition-colors">
-                    <Gauge className="h-4 w-4" />
-                    Dashboard
-                  </button>
-                  <button className="w-full flex items-center gap-3 px-3 py-2 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-accent rounded-md transition-colors">
-                    <Beaker className="h-4 w-4" />
-                    Analyser
-                  </button>
-                  <button className="w-full flex items-center gap-3 px-3 py-2 text-sm font-medium text-foreground bg-accent rounded-md">
-                    <ClipboardList className="h-4 w-4" />
-                    Estimator
-                  </button>
-                  <button className="w-full flex items-center gap-3 px-3 py-2 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-accent rounded-md transition-colors">
-                    <BarChart3 className="h-4 w-4" />
-                    Ship Finder
-                  </button>
-                  <button className="w-full flex items-center gap-3 px-3 py-2 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-accent rounded-md transition-colors">
-                    <ArrowLeftRight className="h-4 w-4" />
-                    Risk manager
-                  </button>
-                </nav>
-              </aside>
-
-              {/* Main Content */}
-              <div className="flex-1">
-                <ShipInfoForm onSubmit={handleShipInfoSubmit} defaultValues={shipInfo || undefined} />
-              </div>
-            </div>
+            <ShipInfoForm onSubmit={handleShipInfoSubmit} defaultValues={shipInfo || undefined} />
             
             {!shipInfo && (
               <Card>
