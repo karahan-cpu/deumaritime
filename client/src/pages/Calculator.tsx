@@ -18,6 +18,10 @@ import { CIIRatingDisplay } from "@/components/CIIRatingDisplay";
 import { CIIForecastTable } from "@/components/CIIForecastTable";
 import { ComplianceBadge } from "@/components/ComplianceBadge";
 import { GHGIntensityChart } from "@/components/GHGIntensityChart";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import type { ShipInfo } from "@shared/schema";
 import { calculateIMOGFI, calculateFuelCost } from "@/lib/calculations";
 
@@ -142,6 +146,108 @@ export default function Calculator() {
           </div>
 
           <TabsContent value="ship-info" className="space-y-4 sm:space-y-6">
+            <Card>
+              <CardContent className="pt-6">
+                <Accordion type="multiple" defaultValue={["ship", "voyage"]} className="w-full">
+                  <AccordionItem value="ship" className="border-b">
+                    <AccordionTrigger className="text-base font-semibold hover:no-underline">
+                      Ship
+                    </AccordionTrigger>
+                    <AccordionContent className="pt-4">
+                      <div className="space-y-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="shipNameAccordion">Ship name</Label>
+                          <Input
+                            id="shipNameAccordion"
+                            placeholder="QUEEN JASMIN"
+                            defaultValue={shipInfo?.shipName || ""}
+                            className="w-full"
+                          />
+                        </div>
+                      </div>
+                    </AccordionContent>
+                  </AccordionItem>
+
+                  <AccordionItem value="voyage" className="border-b">
+                    <AccordionTrigger className="text-base font-semibold hover:no-underline">
+                      Voyage
+                    </AccordionTrigger>
+                    <AccordionContent className="pt-4">
+                      <div className="space-y-4">
+                        <div className="space-y-2">
+                          <Label>Previous discharge port</Label>
+                          <RadioGroup defaultValue="Sillamae" className="flex gap-4">
+                            <div className="flex items-center space-x-2">
+                              <RadioGroupItem value="Sillamae" id="previous-sillamae" />
+                              <Label htmlFor="previous-sillamae" className="font-normal cursor-pointer">Sillamae</Label>
+                            </div>
+                          </RadioGroup>
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="loadPort">Load port</Label>
+                          <Input
+                            id="loadPort"
+                            placeholder="Rotterdam"
+                            className="w-full"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="loadCargo">Cargo quantity</Label>
+                          <Input
+                            id="loadCargo"
+                            placeholder="38 000 mt"
+                            className="w-full"
+                          />
+                        </div>
+                        <Button type="button" variant="ghost" className="w-full justify-start">
+                          <span className="mr-2">+</span> Add new...
+                        </Button>
+                        <div className="space-y-2">
+                          <Label>Discharge port</Label>
+                          <RadioGroup defaultValue="Singapore" className="flex gap-4">
+                            <div className="flex items-center space-x-2">
+                              <RadioGroupItem value="Singapore" id="discharge-singapore" />
+                              <Label htmlFor="discharge-singapore" className="font-normal cursor-pointer">Singapore</Label>
+                            </div>
+                          </RadioGroup>
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="dischargeCargo">Cargo quantity</Label>
+                          <Input
+                            id="dischargeCargo"
+                            placeholder="51 565 mt"
+                            className="w-full"
+                          />
+                        </div>
+                      </div>
+                    </AccordionContent>
+                  </AccordionItem>
+
+                  <AccordionItem value="consumption" className="border-b">
+                    <AccordionTrigger className="text-base font-semibold hover:no-underline">
+                      Consumption
+                    </AccordionTrigger>
+                    <AccordionContent className="pt-4">
+                      <div className="space-y-4">
+                        <p className="text-sm text-muted-foreground">Fuel consumption details will be added here.</p>
+                      </div>
+                    </AccordionContent>
+                  </AccordionItem>
+
+                  <AccordionItem value="costs" className="border-b">
+                    <AccordionTrigger className="text-base font-semibold hover:no-underline">
+                      Costs
+                    </AccordionTrigger>
+                    <AccordionContent className="pt-4">
+                      <div className="space-y-4">
+                        <p className="text-sm text-muted-foreground">Cost details will be added here.</p>
+                      </div>
+                    </AccordionContent>
+                  </AccordionItem>
+                </Accordion>
+              </CardContent>
+            </Card>
+
             <ShipInfoForm onSubmit={handleShipInfoSubmit} defaultValues={shipInfo || undefined} />
             
             {!shipInfo && (
