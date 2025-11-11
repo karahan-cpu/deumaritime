@@ -13,7 +13,7 @@ import { CostSummaryCard } from "@/components/CostSummaryCard";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Anchor, FileText, TrendingDown, Euro, DollarSign, BarChart3, Ship, Fuel, Globe, Gauge, Beaker, ClipboardList, ArrowLeftRight } from "lucide-react";
+import { Anchor, FileText, TrendingDown, Euro, DollarSign, BarChart3, Ship, Fuel, Globe, Gauge, Beaker, ClipboardList, ArrowLeftRight, ChevronLeft, ChevronRight } from "lucide-react";
 import { CIIRatingDisplay } from "@/components/CIIRatingDisplay";
 import { CIIForecastTable } from "@/components/CIIForecastTable";
 import { ComplianceBadge } from "@/components/ComplianceBadge";
@@ -58,6 +58,7 @@ type FuelCostResult = ReturnType<typeof calculateFuelCost>;
 export default function Calculator() {
   const [shipInfo, setShipInfo] = useState<ShipInfo | null>(null);
   const [activeTab, setActiveTab] = useState("ship-info");
+  const [sidebarOpen, setSidebarOpen] = useState(true);
   const [eediResult, setEediResult] = useState<EEDIResult | null>(null);
   const [eexiResult, setEexiResult] = useState<EEXIResult | null>(null);
   const [ciiResult, setCiiResult] = useState<CIIResult | null>(null);
@@ -75,36 +76,56 @@ export default function Calculator() {
 
   return (
     <div className="min-h-screen bg-background flex">
-      {/* Sidebar Navigation - Always Visible */}
-      <aside className="w-64 flex-shrink-0 border-r bg-background">
+      {/* Sidebar Navigation - Toggleable */}
+      <aside className={`${sidebarOpen ? 'w-64' : 'w-0'} flex-shrink-0 border-r bg-background transition-all duration-300 overflow-hidden`}>
         <div className="sticky top-0 h-screen overflow-y-auto p-4">
-          <div className="mb-6 pb-4 border-b">
-            <h2 className="text-lg font-semibold">Fleet Simulator</h2>
+          <div className="mb-6 pb-4 border-b flex items-center justify-between">
+            <h2 className={`text-lg font-semibold ${sidebarOpen ? 'opacity-100' : 'opacity-0'} transition-opacity`}>Fleet Simulator</h2>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-6 w-6"
+              onClick={() => setSidebarOpen(false)}
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
           </div>
-          <nav className="space-y-1">
+          <nav className={`space-y-1 ${sidebarOpen ? 'opacity-100' : 'opacity-0'} transition-opacity`}>
             <button className="w-full flex items-center gap-3 px-3 py-2 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-accent rounded-md transition-colors">
               <Gauge className="h-4 w-4" />
-              Dashboard
+              <span className={sidebarOpen ? 'block' : 'hidden'}>Dashboard</span>
             </button>
             <button className="w-full flex items-center gap-3 px-3 py-2 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-accent rounded-md transition-colors">
               <Beaker className="h-4 w-4" />
-              Analyser
+              <span className={sidebarOpen ? 'block' : 'hidden'}>Analyser</span>
             </button>
             <button className="w-full flex items-center gap-3 px-3 py-2 text-sm font-medium text-foreground bg-accent rounded-md">
               <ClipboardList className="h-4 w-4" />
-              Estimator
+              <span className={sidebarOpen ? 'block' : 'hidden'}>Estimator</span>
             </button>
             <button className="w-full flex items-center gap-3 px-3 py-2 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-accent rounded-md transition-colors">
               <BarChart3 className="h-4 w-4" />
-              Ship Finder
+              <span className={sidebarOpen ? 'block' : 'hidden'}>Ship Finder</span>
             </button>
             <button className="w-full flex items-center gap-3 px-3 py-2 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-accent rounded-md transition-colors">
               <ArrowLeftRight className="h-4 w-4" />
-              Risk manager
+              <span className={sidebarOpen ? 'block' : 'hidden'}>Risk manager</span>
             </button>
           </nav>
         </div>
       </aside>
+
+      {/* Toggle Button when sidebar is closed */}
+      {!sidebarOpen && (
+        <Button
+          variant="ghost"
+          size="icon"
+          className="fixed left-0 top-1/2 -translate-y-1/2 z-50 h-8 w-8 rounded-r-md border-r border-t border-b"
+          onClick={() => setSidebarOpen(true)}
+        >
+          <ChevronRight className="h-4 w-4" />
+        </Button>
+      )}
 
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col min-w-0">
