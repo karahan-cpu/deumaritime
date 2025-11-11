@@ -3,48 +3,56 @@ import { ComposedChart, Line, Area, XAxis, YAxis, CartesianGrid, Tooltip, Legend
 import { TrendingDown } from "lucide-react";
 
 interface GHGIntensityChartProps {
-  attainedIntensity?: number;
+  attainedGFI?: number; // IMO GFI attained intensity
+  baseTarget?: number; // Current year base target
+  directTarget?: number; // Current year direct target
 }
 
-export function GHGIntensityChart({ attainedIntensity }: GHGIntensityChartProps) {
-  const baseline = 91.16;
+export function GHGIntensityChart({ attainedGFI, baseTarget, directTarget }: GHGIntensityChartProps) {
+  const baseline2008 = 93.3; // IMO GFI baseline (2008)
   
-  const reductionTargets: Record<number, number> = {
-    2025: 0.02, 2026: 0.02,
-    2027: 0.04, 2028: 0.05, 2029: 0.056,
-    2030: 0.06, 2031: 0.08, 2032: 0.10, 2033: 0.12, 2034: 0.135,
-    2035: 0.145, 2036: 0.18, 2037: 0.21, 2038: 0.25, 2039: 0.285,
-    2040: 0.31, 2041: 0.37, 2042: 0.43, 2043: 0.50, 2044: 0.565,
-    2045: 0.62, 2046: 0.68, 2047: 0.73, 2048: 0.77, 2049: 0.785,
-    2050: 0.80,
+  const reductionTargets: Record<number, { base: number; direct: number }> = {
+    2028: { base: 0.04, direct: 0.17 },
+    2029: { base: 0.06, direct: 0.21 },
+    2030: { base: 0.08, direct: 0.21 },
+    2031: { base: 0.10, direct: 0.25 },
+    2032: { base: 0.12, direct: 0.29 },
+    2033: { base: 0.15, direct: 0.33 },
+    2034: { base: 0.20, direct: 0.38 },
+    2035: { base: 0.30, direct: 0.43 },
+    2036: { base: 0.35, direct: 0.48 },
+    2037: { base: 0.40, direct: 0.53 },
+    2038: { base: 0.45, direct: 0.58 },
+    2039: { base: 0.55, direct: 0.69 },
+    2040: { base: 0.65, direct: 0.80 },
   };
 
-  const chartData = Object.entries(reductionTargets).map(([year, reduction]) => {
-    const baseTarget = baseline * (1 - reduction);
-    const directCompliance = baseTarget * 0.95;
-    const tier1Upper = baseTarget * 1.2;
-    const tier2Upper = baseTarget * 1.4;
-    const threshold = 20;
+  const chartData = Object.entries(reductionTargets).map(([year, targets]) => {
+    const yearBaseTarget = baseline2008 * (1 - targets.base);
+    const yearDirectTarget = baseline2008 * (1 - targets.direct);
     
-    const greenZone = Math.min(threshold, baseTarget);
-    const complianceZone = Math.max(0, baseTarget - greenZone);
-    const tier1Zone = tier1Upper - baseTarget;
-    const tier2Zone = tier2Upper - tier1Upper;
+    // Zones for IMO GFI:
+    // - Surplus zone: below direct target (green)
+    // - Tier 1 zone: between direct and base target (yellow/amber)
+    // - Tier 2 zone: above base target (red)
+    const surplusZone = yearDirectTarget;
+    const tier1Zone = yearBaseTarget - yearDirectTarget;
+    const tier2Zone = baseline2008 - yearBaseTarget; // Above base target
     
     return {
       year: parseInt(year),
-      baseTarget,
-      directCompliance,
-      greenZone,
-      complianceZone,
+      baseTarget: yearBaseTarget,
+      directTarget: yearDirectTarget,
+      surplusZone,
       tier1Zone,
       tier2Zone,
     };
   });
 
-  const maxLimit = Math.max(...chartData.map(d => d.greenZone + d.complianceZone + d.tier1Zone + d.tier2Zone));
-  const yAxisMax = attainedIntensity !== undefined 
-    ? Math.max(maxLimit, attainedIntensity) * 1.05
+  // Max limit should be the baseline (2008) since zones are stacked up to baseline
+  const maxLimit = baseline2008;
+  const yAxisMax = attainedGFI !== undefined 
+    ? Math.max(maxLimit, attainedGFI) * 1.05
     : maxLimit * 1.05;
 
   return (
@@ -55,9 +63,9 @@ export function GHGIntensityChart({ attainedIntensity }: GHGIntensityChartProps)
             <TrendingDown className="h-5 w-5 text-primary" />
           </div>
           <div>
-            <CardTitle>FuelEU Maritime - GHG Intensity Limits</CardTitle>
+            <CardTitle>IMO GHG Fuel Intensity (GFI)</CardTitle>
             <CardDescription>
-              Regulatory compliance framework (2025-2050)
+              Two-tier GHG pricing framework (2028-2040)
             </CardDescription>
           </div>
         </div>
@@ -121,8 +129,8 @@ export function GHGIntensityChart({ attainedIntensity }: GHGIntensityChartProps)
               }}
               labelStyle={{ color: '#0f172a', fontWeight: 600, marginBottom: 8 }}
               formatter={(value: number, name: string) => {
-                if (name === 'baseTarget' || name === 'directCompliance') {
-                  const displayName = name === 'baseTarget' ? 'Base Target' : 'Direct Compliance';
+                if (name === 'baseTarget' || name === 'directTarget') {
+                  const displayName = name === 'baseTarget' ? 'Base Target' : 'Direct Target';
                   return [value.toFixed(2) + ' gCO₂eq/MJ', displayName];
                 }
                 return null;
@@ -138,23 +146,12 @@ export function GHGIntensityChart({ attainedIntensity }: GHGIntensityChartProps)
 
             <Area
               type="stepAfter"
-              dataKey="greenZone"
+              dataKey="surplusZone"
               stackId="1"
               stroke="none"
               fill="url(#greenZone)"
               fillOpacity={1}
-              name="Zero Emissions Incentive"
-              isAnimationActive={false}
-            />
-            
-            <Area
-              type="stepAfter"
-              dataKey="complianceZone"
-              stackId="1"
-              stroke="none"
-              fill="url(#complianceGradient)"
-              fillOpacity={1}
-              name="Compliance Zone"
+              name="Surplus Zone (No Penalty)"
               isAnimationActive={false}
             />
             
@@ -165,7 +162,7 @@ export function GHGIntensityChart({ attainedIntensity }: GHGIntensityChartProps)
               stroke="none"
               fill="url(#tier1Gradient)"
               fillOpacity={1}
-              name="Penalty Zone (Tier 1)"
+              name="Tier 1 Penalty Zone ($100/tCO₂eq)"
               isAnimationActive={false}
             />
 
@@ -176,7 +173,7 @@ export function GHGIntensityChart({ attainedIntensity }: GHGIntensityChartProps)
               stroke="none"
               fill="url(#tier2Gradient)"
               fillOpacity={1}
-              name="High Penalty Zone (Tier 2)"
+              name="Tier 2 Penalty Zone ($380/tCO₂eq)"
               isAnimationActive={false}
             />
             
@@ -192,7 +189,7 @@ export function GHGIntensityChart({ attainedIntensity }: GHGIntensityChartProps)
             
             <Line
               type="stepAfter"
-              dataKey="directCompliance"
+              dataKey="directTarget"
               stroke="#0284c7"
               strokeWidth={2}
               strokeDasharray="5 5"
@@ -200,31 +197,16 @@ export function GHGIntensityChart({ attainedIntensity }: GHGIntensityChartProps)
               dot={false}
               isAnimationActive={false}
             />
-
-            <ReferenceLine
-              y={20}
-              stroke="#059669"
-              strokeWidth={2}
-              strokeDasharray="3 3"
-            >
-              <Label 
-                value="ZN2 Threshold (20 gCO₂eq/MJ)" 
-                position="insideBottomLeft" 
-                fill="#059669"
-                fontSize={11}
-                fontWeight={600}
-              />
-            </ReferenceLine>
             
-            {attainedIntensity !== undefined && (
+            {attainedGFI !== undefined && (
               <ReferenceLine
-                y={attainedIntensity}
+                y={attainedGFI}
                 stroke="#dc2626"
                 strokeWidth={3}
                 strokeDasharray="5 5"
               >
                 <Label 
-                  value={`Your Intensity: ${attainedIntensity.toFixed(2)} gCO₂eq/MJ`}
+                  value={`Your GFI: ${attainedGFI.toFixed(2)} gCO₂eq/MJ`}
                   position="top"
                   fill="#dc2626"
                   fontSize={12}
@@ -236,63 +218,65 @@ export function GHGIntensityChart({ attainedIntensity }: GHGIntensityChartProps)
         </ResponsiveContainer>
         
         <div className="mt-6 grid grid-cols-1 md:grid-cols-4 gap-4 text-sm">
-          <div className="p-3 border rounded-lg bg-gradient-to-br from-blue-50 to-transparent dark:from-blue-950/20" data-testid="metric-2025-limit">
-            <div className="text-muted-foreground font-semibold">2025 Limit</div>
-            <div className="text-xl font-bold font-mono text-blue-600 dark:text-blue-400" data-testid="text-2025-limit-value">
-              {(baseline * (1 - 0.02)).toFixed(2)}
+          <div className="p-3 border rounded-lg bg-gradient-to-br from-blue-50 to-transparent dark:from-blue-950/20" data-testid="metric-2028-base">
+            <div className="text-muted-foreground font-semibold">2028 Base Target</div>
+            <div className="text-xl font-bold font-mono text-blue-600 dark:text-blue-400" data-testid="text-2028-base-value">
+              {(baseline2008 * (1 - 0.04)).toFixed(2)}
             </div>
             <div className="text-xs text-muted-foreground">gCO₂eq/MJ</div>
           </div>
-          <div className="p-3 border rounded-lg bg-gradient-to-br from-blue-50 to-transparent dark:from-blue-950/20" data-testid="metric-2035-limit">
-            <div className="text-muted-foreground font-semibold">2035 Limit</div>
-            <div className="text-xl font-bold font-mono text-blue-600 dark:text-blue-400" data-testid="text-2035-limit-value">
-              {(baseline * (1 - 0.145)).toFixed(2)}
+          <div className="p-3 border rounded-lg bg-gradient-to-br from-blue-50 to-transparent dark:from-blue-950/20" data-testid="metric-2035-base">
+            <div className="text-muted-foreground font-semibold">2035 Base Target</div>
+            <div className="text-xl font-bold font-mono text-blue-600 dark:text-blue-400" data-testid="text-2035-base-value">
+              {(baseline2008 * (1 - 0.30)).toFixed(2)}
             </div>
             <div className="text-xs text-muted-foreground">gCO₂eq/MJ</div>
           </div>
-          <div className="p-3 border rounded-lg bg-gradient-to-br from-green-50 to-transparent dark:from-green-950/20" data-testid="metric-2050-target">
-            <div className="text-muted-foreground font-semibold">2050 Target</div>
-            <div className="text-xl font-bold font-mono text-green-600 dark:text-green-400" data-testid="text-2050-target-value">
-              {(baseline * (1 - 0.80)).toFixed(2)}
+          <div className="p-3 border rounded-lg bg-gradient-to-br from-green-50 to-transparent dark:from-green-950/20" data-testid="metric-2040-base">
+            <div className="text-muted-foreground font-semibold">2040 Base Target</div>
+            <div className="text-xl font-bold font-mono text-green-600 dark:text-green-400" data-testid="text-2040-base-value">
+              {(baseline2008 * (1 - 0.65)).toFixed(2)}
             </div>
-            <div className="text-xs text-muted-foreground">gCO₂eq/MJ (-80%)</div>
+            <div className="text-xs text-muted-foreground">gCO₂eq/MJ (-65%)</div>
           </div>
-          <div className="p-3 border rounded-lg bg-gradient-to-br from-green-50 to-transparent dark:from-green-950/20">
-            <div className="text-muted-foreground font-semibold">ZN2 Threshold</div>
-            <div className="text-xl font-bold font-mono text-green-600 dark:text-green-400">20.00</div>
-            <div className="text-xs text-muted-foreground">Zero Emissions Goal</div>
-          </div>
+          {attainedGFI !== undefined && (
+            <div className="p-3 border rounded-lg bg-gradient-to-br from-amber-50 to-transparent dark:from-amber-950/20">
+              <div className="text-muted-foreground font-semibold">Your Attained GFI</div>
+              <div className="text-xl font-bold font-mono text-amber-600 dark:text-amber-400">{attainedGFI.toFixed(2)}</div>
+              <div className="text-xs text-muted-foreground">gCO₂eq/MJ</div>
+            </div>
+          )}
         </div>
 
         <div className="mt-4 p-4 bg-muted/50 rounded-lg border">
-          <h4 className="font-semibold mb-2 text-sm">Penalty Tiers</h4>
+          <h4 className="font-semibold mb-2 text-sm">IMO GFI Penalty Tiers</h4>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
+            <div className="flex items-start gap-2">
+              <div className="w-4 h-4 rounded bg-gradient-to-br from-green-200 to-green-300 dark:from-green-800 dark:to-green-700 mt-0.5"></div>
+              <div>
+                <div className="font-semibold">Surplus Zone</div>
+                <div className="text-muted-foreground">Below direct target - no penalty, banking allowed</div>
+              </div>
+            </div>
             <div className="flex items-start gap-2">
               <div className="w-4 h-4 rounded bg-gradient-to-br from-blue-200 to-blue-300 dark:from-blue-800 dark:to-blue-700 mt-0.5"></div>
               <div>
                 <div className="font-semibold">Tier 1 Penalty Zone</div>
-                <div className="text-muted-foreground">€100/t CO₂eq shortfall (2025-2030)</div>
+                <div className="text-muted-foreground">$100/t CO₂eq between direct and base target</div>
               </div>
             </div>
             <div className="flex items-start gap-2">
               <div className="w-4 h-4 rounded bg-gradient-to-br from-blue-400 to-blue-500 dark:from-blue-600 dark:to-blue-500 mt-0.5"></div>
               <div>
-                <div className="font-semibold">Tier 2 High Penalty Zone</div>
-                <div className="text-muted-foreground">€380/t CO₂eq shortfall (2028-2030+)</div>
+                <div className="font-semibold">Tier 2 Penalty Zone</div>
+                <div className="text-muted-foreground">$380/t CO₂eq above base target</div>
               </div>
             </div>
             <div className="flex items-start gap-2">
               <div className="w-4 h-4 rounded bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-950 dark:to-blue-900 mt-0.5"></div>
               <div>
-                <div className="font-semibold">Compliance Zone</div>
-                <div className="text-muted-foreground">Below direct compliance target - no penalty</div>
-              </div>
-            </div>
-            <div className="flex items-start gap-2">
-              <div className="w-4 h-4 rounded bg-gradient-to-br from-green-200 to-green-300 dark:from-green-800 dark:to-green-700 mt-0.5"></div>
-              <div>
-                <div className="font-semibold">Zero Emissions Incentive</div>
-                <div className="text-muted-foreground">Below 20 gCO₂eq/MJ - banking allowed</div>
+                <div className="font-semibold">Baseline (2008)</div>
+                <div className="text-muted-foreground">93.3 gCO₂eq/MJ reference value</div>
               </div>
             </div>
           </div>

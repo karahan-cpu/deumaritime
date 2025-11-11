@@ -234,7 +234,11 @@ export default function Calculator() {
 
           <TabsContent value="summary">
             <div className="space-y-6">
-              <GHGIntensityChart attainedIntensity={fuelEUResult?.intensity} />
+              <GHGIntensityChart 
+                attainedGFI={imoGFIResult?.attainedGFI}
+                baseTarget={imoGFIResult?.baseTarget}
+                directTarget={imoGFIResult?.directTarget}
+              />
               
               <Card>
                 <CardHeader>
