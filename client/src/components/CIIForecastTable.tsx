@@ -1,5 +1,4 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { calculateRequiredCII, getCIIRating } from "@/lib/calculations";
 
 interface CIIForecastTableProps {
@@ -59,37 +58,41 @@ export function CIIForecastTable({
         </p>
       </CardHeader>
       <CardContent>
-        <div className="overflow-x-auto">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="sticky left-0 z-10 bg-background min-w-[150px]">Vessel name</TableHead>
-                {years.map((year) => (
-                  <TableHead key={year} className="text-center min-w-[60px]">
-                    {year}
-                  </TableHead>
-                ))}
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              <TableRow>
-                <TableCell className="font-medium sticky left-0 z-10 bg-background">
-                  {displayName}
-                </TableCell>
-                {forecastData.map((data) => {
-                  const colors = data.isForecast ? ratingColorsDull : ratingColorsBright;
-                  return (
-                    <TableCell 
-                      key={data.year} 
-                      className={`text-center font-bold text-sm ${colors[data.rating]}`}
-                    >
-                      {data.rating}
-                    </TableCell>
-                  );
-                })}
-              </TableRow>
-            </TableBody>
-          </Table>
+        <div className="overflow-x-auto -mx-6 px-6">
+          <div className="inline-block min-w-full align-middle">
+            <table className="w-full border-collapse">
+              <thead>
+                <tr className="border-b">
+                  <th className="sticky left-0 z-20 bg-background px-4 py-3 text-left font-medium text-muted-foreground min-w-[150px] border-r">
+                    Vessel name
+                  </th>
+                  {years.map((year) => (
+                    <th key={year} className="px-3 py-3 text-center font-medium text-muted-foreground min-w-[60px] whitespace-nowrap">
+                      {year}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                <tr className="border-b">
+                  <td className="sticky left-0 z-10 bg-background px-4 py-3 font-medium border-r">
+                    {displayName}
+                  </td>
+                  {forecastData.map((data) => {
+                    const colors = data.isForecast ? ratingColorsDull : ratingColorsBright;
+                    return (
+                      <td 
+                        key={data.year} 
+                        className={`px-3 py-3 text-center font-bold text-sm whitespace-nowrap ${colors[data.rating]}`}
+                      >
+                        {data.rating}
+                      </td>
+                    );
+                  })}
+                </tr>
+              </tbody>
+            </table>
+          </div>
         </div>
       </CardContent>
     </Card>
