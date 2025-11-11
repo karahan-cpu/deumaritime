@@ -18,9 +18,11 @@ import { Ship } from "lucide-react";
 interface ShipInfoFormProps {
   onSubmit: (data: ShipInfo) => void;
   defaultValues?: Partial<ShipInfo>;
+  onAddToFleet?: (data: ShipInfo) => void;
+  showAddToFleet?: boolean;
 }
 
-export function ShipInfoForm({ onSubmit, defaultValues }: ShipInfoFormProps) {
+export function ShipInfoForm({ onSubmit, defaultValues, onAddToFleet, showAddToFleet = false }: ShipInfoFormProps) {
   const form = useForm<ShipInfo>({
     resolver: zodResolver(shipInfoSchema),
     defaultValues: defaultValues || {
@@ -141,9 +143,29 @@ export function ShipInfoForm({ onSubmit, defaultValues }: ShipInfoFormProps) {
             </div>
           </div>
 
-          <Button type="submit" className="w-full" data-testid="button-submit-ship-info">
-            Continue to Calculations
-          </Button>
+          <div className="flex gap-3">
+            <Button type="submit" className="flex-1" data-testid="button-submit-ship-info">
+              Continue to Calculations
+            </Button>
+            {showAddToFleet && onAddToFleet && (
+              <Button 
+                type="button" 
+                variant="outline" 
+                className="flex-1"
+                onClick={() => {
+                  const data = form.getValues();
+                  if (form.formState.isValid) {
+                    onAddToFleet(data as ShipInfo);
+                    form.reset();
+                  } else {
+                    form.handleSubmit(onAddToFleet)();
+                  }
+                }}
+              >
+                Add to Fleet
+              </Button>
+            )}
+          </div>
         </form>
       </CardContent>
     </Card>

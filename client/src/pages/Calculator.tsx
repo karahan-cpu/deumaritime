@@ -18,8 +18,10 @@ import { CIIRatingDisplay } from "@/components/CIIRatingDisplay";
 import { CIIForecastTable } from "@/components/CIIForecastTable";
 import { ComplianceBadge } from "@/components/ComplianceBadge";
 import { GHGIntensityChart } from "@/components/GHGIntensityChart";
+import { FleetSimulator } from "@/components/FleetSimulator";
 import type { ShipInfo } from "@shared/schema";
 import { calculateIMOGFI, calculateFuelCost } from "@/lib/calculations";
+import { nanoid } from "nanoid";
 
 interface EEDIResult {
   attained: number;
@@ -55,10 +57,15 @@ interface EUETSResult {
 type IMOGFIResult = ReturnType<typeof calculateIMOGFI>;
 type FuelCostResult = ReturnType<typeof calculateFuelCost>;
 
+interface Vessel extends ShipInfo {
+  id: string;
+}
+
 export default function Calculator() {
   const [shipInfo, setShipInfo] = useState<ShipInfo | null>(null);
   const [activeTab, setActiveTab] = useState("ship-info");
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [fleet, setFleet] = useState<Vessel[]>([]);
   const [eediResult, setEediResult] = useState<EEDIResult | null>(null);
   const [eexiResult, setEexiResult] = useState<EEXIResult | null>(null);
   const [ciiResult, setCiiResult] = useState<CIIResult | null>(null);
@@ -71,6 +78,30 @@ export default function Calculator() {
   const handleShipInfoSubmit = (data: ShipInfo) => {
     setShipInfo(data);
     setActiveTab(data.isNewBuild ? "eedi" : "cii");
+  };
+
+  const handleAddToFleet = (data: ShipInfo) => {
+    const newVessel: Vessel = {
+      ...data,
+      id: nanoid(),
+    };
+    setFleet([...fleet, newVessel]);
+    setShipInfo(data);
+    setActiveTab(data.isNewBuild ? "eedi" : "cii");
+  };
+
+  const handleDeleteVessel = (id: string) => {
+    setFleet(fleet.filter((vessel) => vessel.id !== id));
+  };
+
+  const handleEditVessel = (vessel: Vessel) => {
+    setShipInfo(vessel);
+    setActiveTab("ship-info");
+  };
+
+  const handleAddVessel = () => {
+    setShipInfo(null);
+    setActiveTab("ship-info");
   };
 
 
@@ -155,7 +186,7 @@ export default function Calculator() {
         <main className="flex-1 overflow-y-auto px-3 sm:px-4 py-4 sm:py-8">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4 sm:space-y-6">
           <div className="overflow-x-auto -mx-3 sm:mx-0 px-3 sm:px-0">
-            <TabsList className="inline-flex w-auto min-w-full sm:grid sm:grid-cols-3 lg:grid-cols-10 gap-1.5 sm:gap-2 h-auto p-1">
+            <TabsList className="inline-flex w-auto min-w-full sm:grid sm:grid-cols-3 lg:grid-cols-11 gap-1.5 sm:gap-2 h-auto p-1">
             <TabsTrigger value="ship-info" className="gap-1.5 sm:gap-2 text-xs sm:text-sm whitespace-nowrap px-2 sm:px-3" data-testid="tab-ship-info">
               <Anchor className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
               <span className="hidden sm:inline">Ship Info</span>
@@ -196,11 +227,20 @@ export default function Calculator() {
               <BarChart3 className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
               <span className="hidden sm:inline">Summary</span>
             </TabsTrigger>
+            <TabsTrigger value="fleet" className="gap-1.5 sm:gap-2 text-xs sm:text-sm whitespace-nowrap px-2 sm:px-3" data-testid="tab-fleet">
+              <Ship className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+              <span className="hidden sm:inline">Fleet</span>
+            </TabsTrigger>
           </TabsList>
           </div>
 
           <TabsContent value="ship-info" className="space-y-4 sm:space-y-6">
-            <ShipInfoForm onSubmit={handleShipInfoSubmit} defaultValues={shipInfo || undefined} />
+            <ShipInfoForm 
+              onSubmit={handleShipInfoSubmit} 
+              defaultValues={shipInfo || undefined}
+              onAddToFleet={handleAddToFleet}
+              showAddToFleet={true}
+            />
             
             {!shipInfo && (
               <Card>
@@ -488,6 +528,15 @@ export default function Calculator() {
                 />
               )}
             </div>
+          </TabsContent>
+
+          <TabsContent value="fleet" className="space-y-4 sm:space-y-6">
+            <FleetSimulator
+              vessels={fleet}
+              onDeleteVessel={handleDeleteVessel}
+              onEditVessel={handleEditVessel}
+              onAddVessel={handleAddVessel}
+            />
           </TabsContent>
         </Tabs>
         </main>
