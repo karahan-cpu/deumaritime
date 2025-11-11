@@ -25,6 +25,7 @@ export function EEDICalculator({ shipType, isNewBuild, yearBuilt, onResultCalcul
     required: number;
     compliant: boolean;
   } | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   const form = useForm<EEDIInput>({
     resolver: zodResolver(eediInputSchema),
@@ -38,28 +39,78 @@ export function EEDICalculator({ shipType, isNewBuild, yearBuilt, onResultCalcul
       fuelType: "HFO",
       engineInfo: { engineType: 'two_stroke', count: 1 },
     },
+    mode: "onChange",
   });
 
   const handleCalculate = (data: EEDIInput) => {
-    const attained = calculateEEDI(
-      data.mainEnginePower,
-      data.mainEngineSFC,
-      data.auxiliaryPower,
-      data.auxiliarySFC,
-      data.referenceSpeed,
-      data.capacity,
-      data.fuelType
-    );
+    setError(null); // Clear previous errors
+    setResult(null); // Clear previous results
 
-    const required = calculateRequiredEEDI(shipType, data.capacity, yearBuilt);
-    const compliant = attained <= required;
-
-    const calculatedResult = { attained, required, compliant };
-    setResult(calculatedResult);
-    if (onResultCalculated) {
-      onResultCalculated(calculatedResult);
+    // Validate that at least one engine has power
+    if (data.mainEnginePower <= 0 && data.auxiliaryPower <= 0) {
+      setError("Please enter at least one engine with power > 0");
+      return;
     }
-    console.log("EEDI calculated:", calculatedResult);
+
+    // Validate speed and capacity
+    if (!data.referenceSpeed || data.referenceSpeed <= 0) {
+      setError("Reference speed must be greater than 0");
+      form.setError("referenceSpeed", { message: "Reference speed must be greater than 0" });
+      return;
+    }
+
+    if (!data.capacity || data.capacity <= 0) {
+      setError("Capacity must be greater than 0");
+      form.setError("capacity", { message: "Capacity must be greater than 0" });
+      return;
+    }
+
+    try {
+      const attained = calculateEEDI(
+        data.mainEnginePower || 0,
+        data.mainEngineSFC || 190,
+        data.auxiliaryPower || 0,
+        data.auxiliarySFC || 215,
+        data.referenceSpeed,
+        data.capacity,
+        data.fuelType
+      );
+
+      if (!isFinite(attained) || attained <= 0) {
+        setError("Invalid calculation result. Please check your inputs.");
+        return;
+      }
+
+      const required = calculateRequiredEEDI(shipType, data.capacity, yearBuilt);
+      const compliant = attained <= required;
+
+      const calculatedResult = { attained, required, compliant };
+      
+      // Debug logging (can be removed in production)
+      console.log("EEDI Calculation:", {
+        mainPower: data.mainEnginePower,
+        mainSFC: data.mainEngineSFC,
+        auxPower: data.auxiliaryPower,
+        auxSFC: data.auxiliarySFC,
+        speed: data.referenceSpeed,
+        capacity: data.capacity,
+        fuelType: data.fuelType,
+        attained,
+        required,
+        compliant,
+      });
+      
+      setResult(calculatedResult);
+      setError(null); // Clear any previous errors on success
+      if (onResultCalculated) {
+        onResultCalculated(calculatedResult);
+      }
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Unknown calculation error';
+      setError(errorMessage);
+      setResult(null); // Clear results on error
+      console.error("EEDI calculation error:", err);
+    }
   };
 
   return (
@@ -83,7 +134,7 @@ export function EEDICalculator({ shipType, isNewBuild, yearBuilt, onResultCalcul
           <form onSubmit={form.handleSubmit(handleCalculate)} className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-2">
-                <Label htmlFor="mainEnginePower">Main Engine Power (kW)</Label>
+                <Label htmlFor="mainEnginePower">Main Engine Power (kW MCR) *</Label>
                 <Input
                   id="mainEnginePower"
                   type="number"
@@ -91,11 +142,16 @@ export function EEDICalculator({ shipType, isNewBuild, yearBuilt, onResultCalcul
                   {...form.register("mainEnginePower", { valueAsNumber: true })}
                   placeholder="e.g., 12500"
                   data-testid="input-main-engine-power"
+                  min="0"
                 />
+                <p className="text-xs text-muted-foreground">Maximum Continuous Rating</p>
+                {form.formState.errors.mainEnginePower && (
+                  <p className="text-sm text-destructive">{form.formState.errors.mainEnginePower.message}</p>
+                )}
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="mainEngineSFC">Main Engine SFC (g/kWh)</Label>
+                <Label htmlFor="mainEngineSFC">Main Engine SFC (g/kWh) *</Label>
                 <Input
                   id="mainEngineSFC"
                   type="number"
@@ -103,11 +159,16 @@ export function EEDICalculator({ shipType, isNewBuild, yearBuilt, onResultCalcul
                   {...form.register("mainEngineSFC", { valueAsNumber: true })}
                   placeholder="Default: 190"
                   data-testid="input-main-sfc"
+                  min="0.01"
                 />
+                <p className="text-xs text-muted-foreground">At 75% MCR reference condition</p>
+                {form.formState.errors.mainEngineSFC && (
+                  <p className="text-sm text-destructive">{form.formState.errors.mainEngineSFC.message}</p>
+                )}
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="auxiliaryPower">Auxiliary Power (kW)</Label>
+                <Label htmlFor="auxiliaryPower">Auxiliary Power (kW MCR)</Label>
                 <Input
                   id="auxiliaryPower"
                   type="number"
@@ -115,7 +176,12 @@ export function EEDICalculator({ shipType, isNewBuild, yearBuilt, onResultCalcul
                   {...form.register("auxiliaryPower", { valueAsNumber: true })}
                   placeholder="e.g., 850"
                   data-testid="input-aux-power"
+                  min="0"
                 />
+                <p className="text-xs text-muted-foreground">Maximum Continuous Rating</p>
+                {form.formState.errors.auxiliaryPower && (
+                  <p className="text-sm text-destructive">{form.formState.errors.auxiliaryPower.message}</p>
+                )}
               </div>
 
               <div className="space-y-2">
@@ -127,11 +193,16 @@ export function EEDICalculator({ shipType, isNewBuild, yearBuilt, onResultCalcul
                   {...form.register("auxiliarySFC", { valueAsNumber: true })}
                   placeholder="Default: 215"
                   data-testid="input-aux-sfc"
+                  min="0.01"
                 />
+                <p className="text-xs text-muted-foreground">At 50% MCR reference condition</p>
+                {form.formState.errors.auxiliarySFC && (
+                  <p className="text-sm text-destructive">{form.formState.errors.auxiliarySFC.message}</p>
+                )}
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="referenceSpeed">Reference Speed (knots)</Label>
+                <Label htmlFor="referenceSpeed">Reference Speed (knots) *</Label>
                 <Input
                   id="referenceSpeed"
                   type="number"
@@ -139,11 +210,15 @@ export function EEDICalculator({ shipType, isNewBuild, yearBuilt, onResultCalcul
                   {...form.register("referenceSpeed", { valueAsNumber: true })}
                   placeholder="e.g., 14.5"
                   data-testid="input-reference-speed"
+                  min="0.01"
                 />
+                {form.formState.errors.referenceSpeed && (
+                  <p className="text-sm text-destructive">{form.formState.errors.referenceSpeed.message}</p>
+                )}
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="capacity">Capacity (DWT)</Label>
+                <Label htmlFor="capacity">Capacity (DWT) *</Label>
                 <Input
                   id="capacity"
                   type="number"
@@ -151,7 +226,11 @@ export function EEDICalculator({ shipType, isNewBuild, yearBuilt, onResultCalcul
                   {...form.register("capacity", { valueAsNumber: true })}
                   placeholder="e.g., 85000"
                   data-testid="input-capacity"
+                  min="0.01"
                 />
+                {form.formState.errors.capacity && (
+                  <p className="text-sm text-destructive">{form.formState.errors.capacity.message}</p>
+                )}
               </div>
 
               <div className="space-y-2">
@@ -204,7 +283,22 @@ export function EEDICalculator({ shipType, isNewBuild, yearBuilt, onResultCalcul
               </div>
             </div>
 
-            <Button type="submit" className="w-full" data-testid="button-calculate-eedi">
+            {error && (
+              <div className="p-3 bg-destructive/10 border border-destructive/20 rounded-md">
+                <p className="text-sm text-destructive">{error}</p>
+              </div>
+            )}
+
+            <Button
+              type="submit"
+              className="w-full"
+              data-testid="button-calculate-eedi"
+              disabled={
+                (form.watch("mainEnginePower") <= 0 && form.watch("auxiliaryPower") <= 0) ||
+                form.watch("referenceSpeed") <= 0 ||
+                form.watch("capacity") <= 0
+              }
+            >
               Calculate EEDI
             </Button>
           </form>

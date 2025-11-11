@@ -43,12 +43,70 @@ export function calculateEEDI(
   capacity: number,
   fuelType: string
 ): number {
+  // Validate inputs
+  if (!speed || speed <= 0 || !capacity || capacity <= 0) {
+    throw new Error("Speed and capacity must be greater than 0");
+  }
+
+  // EEDI formula per IMO: EEDI = Σ(CF × SFC × P_ref) / (Capacity × Vref)
+  // Where:
+  // - CF = Carbon factor (gCO₂/g fuel)
+  // - SFC = Specific fuel consumption at reference condition (g/kWh)
+  // - P_ref = Engine power at reference condition (kW)
+  //   * Main engines: P_ref = 0.75 × MCR
+  //   * Auxiliary engines: P_ref = 0.50 × MCR
+  // - Capacity = Deadweight tonnage (DWT) in tonnes
+  // - Vref = Reference speed in knots (nautical miles per hour)
+  // Result: gCO₂/(tonne-nm)
+  //
+  // Note: User inputs MCR power. SFC should be at reference condition (75% MCR for main, 50% for aux).
+  const mainLoadFactor = 0.75; // Main engines: 75% of MCR
+  const auxLoadFactor = 0.50; // Auxiliary engines: 50% of MCR (NOT 0.75!)
+  
   const cf = getCO2Factor(fuelType);
-  const mainEmissions = (cf * mainSFC * mainPower * 0.75) / 1000000;
-  const auxEmissions = (cf * auxSFC * auxPower * 0.75) / 1000000;
-  const totalEmissions = mainEmissions + auxEmissions;
-  const transportWork = capacity * speed;
-  return (totalEmissions / transportWork) * 1000000000;
+  
+  // Calculate main engine emissions
+  // Formula: CF (gCO₂/g) × SFC (g/kWh) × P_ref (kW)
+  // Result: gCO₂/h
+  let mainEmissionsPerHour = 0;
+  if (mainPower > 0 && mainSFC > 0) {
+    const referencePower = mainPower * mainLoadFactor;
+    mainEmissionsPerHour = cf * mainSFC * referencePower;
+  }
+  
+  // Calculate auxiliary engine emissions
+  // Formula: CF (gCO₂/g) × SFC (g/kWh) × P_ref (kW)
+  // Result: gCO₂/h
+  let auxEmissionsPerHour = 0;
+  if (auxPower > 0 && auxSFC > 0) {
+    const referencePower = auxPower * auxLoadFactor;
+    auxEmissionsPerHour = cf * auxSFC * referencePower;
+  }
+  
+  const totalEmissionsPerHour = mainEmissionsPerHour + auxEmissionsPerHour; // gCO₂/h
+  
+  if (totalEmissionsPerHour <= 0) {
+    throw new Error("Total emissions must be greater than 0. Please check engine inputs.");
+  }
+  
+  // Transport work: Capacity (tonnes) × Vref (knots = nautical miles/hour)
+  // Result: tonne-nm/h
+  const transportWorkPerHour = capacity * speed; // tonne-nm/h
+  
+  if (transportWorkPerHour === 0) {
+    throw new Error("Transport work (capacity × speed) cannot be zero");
+  }
+  
+  // EEDI formula: EEDI = Σ(CF × SFC × P_ref) / (Capacity × Vref)
+  // Units: (gCO₂/h) / (tonne-nm/h) = gCO₂/(tonne-nm)
+  // The result is already in the correct units (gCO₂ per tonne-nautical mile)
+  const eedi = totalEmissionsPerHour / transportWorkPerHour;
+  
+  if (!isFinite(eedi) || eedi <= 0) {
+    throw new Error("Invalid EEDI calculation result");
+  }
+  
+  return eedi;
 }
 
 export function calculateRequiredEEDI(shipType: string, capacity: number, year: number): number {

@@ -56,16 +56,22 @@ export const engineRowSchema = z.object({
 });
 
 export const eediInputSchema = z.object({
-  mainEnginePower: z.number().positive("Main engine power must be positive"),
-  mainEngineSFC: z.number().positive("SFC must be positive"),
-  auxiliaryPower: z.number().positive("Auxiliary power must be positive"),
-  auxiliarySFC: z.number().positive("Auxiliary SFC must be positive"),
-  referenceSpeed: z.number().positive("Reference speed must be positive"),
-  capacity: z.number().positive("Capacity must be positive"),
-  fuelType: z.string(),
+  mainEnginePower: z.number().nonnegative("Main engine power must be non-negative").default(0),
+  mainEngineSFC: z.number().positive("SFC must be positive").default(190),
+  auxiliaryPower: z.number().nonnegative("Auxiliary power must be non-negative").default(0),
+  auxiliarySFC: z.number().positive("Auxiliary SFC must be positive").default(215),
+  referenceSpeed: z.number().positive("Reference speed must be greater than 0"),
+  capacity: z.number().positive("Capacity must be greater than 0"),
+  fuelType: z.string().default("HFO"),
   // Optional additions
   engineInfo: engineInfoSchema.optional(),
   fuelRows: z.array(fuelRowSchema).optional(),
+}).refine((data) => {
+  // At least one engine (main or auxiliary) must have power > 0
+  return data.mainEnginePower > 0 || data.auxiliaryPower > 0;
+}, {
+  message: "At least one engine with power > 0 is required",
+  path: ["mainEnginePower"]
 });
 
 export const eexiInputSchema = z.object({
