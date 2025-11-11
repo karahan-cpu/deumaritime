@@ -12,7 +12,20 @@ export function EngineRowsList({ value, onChange, title }: {
   const rows = value ?? [];
 
   const updateRow = (idx: number, patch: Partial<EngineRow>) => {
-    const next = rows.map((r, i) => i === idx ? { ...r, ...patch } : r);
+    const next = rows.map((r, i) => {
+      if (i === idx) {
+        const updated = { ...r, ...patch };
+        // Ensure numeric fields are properly handled
+        if ('power' in patch && patch.power !== undefined) {
+          updated.power = Math.max(0, patch.power);
+        }
+        if ('sfc' in patch && patch.sfc !== undefined) {
+          updated.sfc = patch.sfc > 0 ? patch.sfc : 190;
+        }
+        return updated;
+      }
+      return r;
+    });
     onChange(next);
   };
 
@@ -31,14 +44,32 @@ export function EngineRowsList({ value, onChange, title }: {
       {rows.map((row, idx) => (
         <div key={idx} className="grid grid-cols-1 sm:grid-cols-12 gap-3 items-end">
           <div className="sm:col-span-4 space-y-1">
-            <Label>Power (kW)</Label>
-            <Input type="number" step="0.01" placeholder="e.g., 12500" value={row.power ?? 0}
-              onChange={(e) => updateRow(idx, { power: parseFloat(e.target.value) || 0 })} />
+            <Label>Power (kW) *</Label>
+            <Input 
+              type="number" 
+              step="0.01" 
+              placeholder="e.g., 12500" 
+              value={row.power ?? 0}
+              onChange={(e) => {
+                const val = e.target.value === '' ? 0 : parseFloat(e.target.value);
+                updateRow(idx, { power: isNaN(val) ? 0 : Math.max(0, val) });
+              }}
+              min="0"
+            />
           </div>
           <div className="sm:col-span-3 space-y-1">
-            <Label>SFC (g/kWh)</Label>
-            <Input type="number" step="0.01" placeholder="e.g., 190" value={row.sfc ?? 190}
-              onChange={(e) => updateRow(idx, { sfc: parseFloat(e.target.value) || 190 })} />
+            <Label>SFC (g/kWh) *</Label>
+            <Input 
+              type="number" 
+              step="0.01" 
+              placeholder="e.g., 190" 
+              value={row.sfc ?? 190}
+              onChange={(e) => {
+                const val = e.target.value === '' ? 190 : parseFloat(e.target.value);
+                updateRow(idx, { sfc: isNaN(val) || val <= 0 ? 190 : val });
+              }}
+              min="0.01"
+            />
           </div>
           <div className="sm:col-span-3 space-y-1">
             <Label>Fuel Type</Label>

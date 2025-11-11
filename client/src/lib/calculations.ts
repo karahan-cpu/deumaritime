@@ -101,32 +101,55 @@ export function calculateEEXIFromEngines(
   capacity: number,
   hasEPL: boolean
 ): number {
+  // Validate inputs
+  if (!speed || speed <= 0 || !capacity || capacity <= 0) {
+    throw new Error("Speed and capacity must be greater than 0");
+  }
+
   const powerFactor = hasEPL ? 0.83 : 0.75;
   let totalMainEmissions = 0;
   let totalAuxEmissions = 0;
 
   // Sum emissions from all main engines (skip engines with 0 power)
   for (const engine of mainEngines || []) {
-    if (engine.power > 0 && engine.sfc > 0) {
+    if (engine && engine.power > 0 && engine.sfc > 0 && engine.fuelType) {
       const cf = getCO2Factor(engine.fuelType);
       const emissions = (cf * engine.sfc * engine.power * powerFactor) / 1000000;
-      totalMainEmissions += emissions;
+      if (isFinite(emissions)) {
+        totalMainEmissions += emissions;
+      }
     }
   }
 
   // Sum emissions from all auxiliary engines (skip engines with 0 power)
   for (const engine of auxiliaryEngines || []) {
-    if (engine.power > 0 && engine.sfc > 0) {
+    if (engine && engine.power > 0 && engine.sfc > 0 && engine.fuelType) {
       const cf = getCO2Factor(engine.fuelType);
       const emissions = (cf * engine.sfc * engine.power * powerFactor) / 1000000;
-      totalAuxEmissions += emissions;
+      if (isFinite(emissions)) {
+        totalAuxEmissions += emissions;
+      }
     }
   }
 
   const totalEmissions = totalMainEmissions + totalAuxEmissions;
   const transportWork = capacity * speed;
-  if (transportWork === 0) return 0;
-  return (totalEmissions / transportWork) * 1000000000;
+  
+  if (transportWork === 0) {
+    throw new Error("Transport work (capacity × speed) cannot be zero");
+  }
+
+  if (totalEmissions <= 0) {
+    throw new Error("Total emissions must be greater than 0. Please check engine inputs.");
+  }
+
+  const eexi = (totalEmissions / transportWork) * 1000000000;
+  
+  if (!isFinite(eexi) || eexi <= 0) {
+    throw new Error("Invalid EEXI calculation result");
+  }
+
+  return eexi;
 }
 
 export function calculateRequiredEEXI(
@@ -134,6 +157,14 @@ export function calculateRequiredEEXI(
   capacity: number,
   year: number
 ): number {
+  if (!capacity || capacity <= 0) {
+    throw new Error("Capacity must be greater than 0");
+  }
+
+  if (!year || year < 2020) {
+    throw new Error("Year must be 2020 or later");
+  }
+
   // Mirror EEDI reference lines for a reasonable default and apply EEXI reductions
   const referencelines: Record<string, { a: number; c: number }> = {
     "Bulk Carrier": { a: 961.79, c: 0.477 },
@@ -149,12 +180,22 @@ export function calculateRequiredEEXI(
   const ref = referencelines[shipType] || referencelines["Bulk Carrier"];
   const baseline = ref.a * Math.pow(capacity, -ref.c);
 
+  if (!isFinite(baseline) || baseline <= 0) {
+    throw new Error(`Invalid baseline calculation for ${shipType} with capacity ${capacity}`);
+  }
+
   // EEXI reduction (approximation): 20% from 2023, 30% from 2025+
   let reductionFactor = 0;
   if (year >= 2025) reductionFactor = 0.30;
   else if (year >= 2023) reductionFactor = 0.20;
 
-  return baseline * (1 - reductionFactor);
+  const required = baseline * (1 - reductionFactor);
+
+  if (!isFinite(required) || required <= 0) {
+    throw new Error("Invalid required EEXI calculation result");
+  }
+
+  return required;
 }
 
 export function calculateCII(

@@ -73,8 +73,8 @@ export const eexiInputSchema = z.object({
   mainEngineSFC: z.number().positive().optional(),
   auxiliaryPower: z.number().positive().optional(),
   auxiliarySFC: z.number().positive().optional(),
-  speed: z.number().nonnegative().default(0),
-  capacity: z.number().nonnegative().default(0),
+  speed: z.number().nonnegative("Speed must be a positive number").default(0),
+  capacity: z.number().nonnegative("Capacity must be a positive number").default(0),
   fuelType: z.string().optional(),
   hasEPL: z.boolean().default(false),
   // Engine rows (new approach)
