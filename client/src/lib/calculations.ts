@@ -43,6 +43,19 @@ export function calculateEEDI(
   capacity: number,
   fuelType: string
 ): number {
+  // Legacy function - use calculateEEDIFromEngines instead
+  // This function is kept for backwards compatibility
+  const mainEngines = mainPower > 0 ? [{ power: mainPower, sfc: mainSFC, fuelType }] : [];
+  const auxiliaryEngines = auxPower > 0 ? [{ power: auxPower, sfc: auxSFC, fuelType }] : [];
+  return calculateEEDIFromEngines(mainEngines, auxiliaryEngines, speed, capacity);
+}
+
+export function calculateEEDIFromEngines(
+  mainEngines: Array<{ power: number; sfc: number; fuelType: string }>,
+  auxiliaryEngines: Array<{ power: number; sfc: number; fuelType: string }>,
+  speed: number,
+  capacity: number
+): number {
   // Validate inputs
   if (!speed || speed <= 0 || !capacity || capacity <= 0) {
     throw new Error("Speed and capacity must be greater than 0");
@@ -63,27 +76,41 @@ export function calculateEEDI(
   const mainLoadFactor = 0.75; // Main engines: 75% of MCR
   const auxLoadFactor = 0.50; // Auxiliary engines: 50% of MCR (NOT 0.75!)
   
-  const cf = getCO2Factor(fuelType);
-  
-  // Calculate main engine emissions
+  let totalMainEmissions = 0;
+  let totalAuxEmissions = 0;
+
+  // Sum emissions from all main engines
+  // User inputs MCR power (kW) - this is the maximum continuous rating
+  // Reference power: P_ref = MCR × 0.75
   // Formula: CF (gCO₂/g) × SFC (g/kWh) × P_ref (kW)
-  // Result: gCO₂/h
-  let mainEmissionsPerHour = 0;
-  if (mainPower > 0 && mainSFC > 0) {
-    const referencePower = mainPower * mainLoadFactor;
-    mainEmissionsPerHour = cf * mainSFC * referencePower;
+  // Result: gCO₂/h per engine
+  for (const engine of mainEngines || []) {
+    if (engine && engine.power > 0 && engine.sfc > 0 && engine.fuelType) {
+      const cf = getCO2Factor(engine.fuelType);
+      const referencePower = engine.power * mainLoadFactor;
+      // Calculate emissions in gCO₂/h: CF × SFC × P_ref
+      const emissionsPerHour = cf * engine.sfc * referencePower;
+      if (isFinite(emissionsPerHour)) {
+        totalMainEmissions += emissionsPerHour;
+      }
+    }
   }
-  
-  // Calculate auxiliary engine emissions
-  // Formula: CF (gCO₂/g) × SFC (g/kWh) × P_ref (kW)
-  // Result: gCO₂/h
-  let auxEmissionsPerHour = 0;
-  if (auxPower > 0 && auxSFC > 0) {
-    const referencePower = auxPower * auxLoadFactor;
-    auxEmissionsPerHour = cf * auxSFC * referencePower;
+
+  // Sum emissions from all auxiliary engines
+  // Reference power: P_ref = MCR × 0.50
+  for (const engine of auxiliaryEngines || []) {
+    if (engine && engine.power > 0 && engine.sfc > 0 && engine.fuelType) {
+      const cf = getCO2Factor(engine.fuelType);
+      const referencePower = engine.power * auxLoadFactor;
+      // Calculate emissions in gCO₂/h: CF × SFC × P_ref
+      const emissionsPerHour = cf * engine.sfc * referencePower;
+      if (isFinite(emissionsPerHour)) {
+        totalAuxEmissions += emissionsPerHour;
+      }
+    }
   }
-  
-  const totalEmissionsPerHour = mainEmissionsPerHour + auxEmissionsPerHour; // gCO₂/h
+
+  const totalEmissionsPerHour = totalMainEmissions + totalAuxEmissions; // gCO₂/h
   
   if (totalEmissionsPerHour <= 0) {
     throw new Error("Total emissions must be greater than 0. Please check engine inputs.");
