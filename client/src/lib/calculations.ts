@@ -359,9 +359,35 @@ export function calculateRequiredCII(shipType: string, capacity: number, year: n
     2028: 0.15,
     2029: 0.17,
     2030: 0.19,
+    2031: 0.21,
+    2032: 0.23,
+    2033: 0.25,
+    2034: 0.27,
+    2035: 0.29,
+    2036: 0.31,
+    2037: 0.33,
+    2038: 0.35,
+    2039: 0.37,
+    2040: 0.39,
   };
   
-  const reduction = reductionFactors[year] || 0.11;
+  // For years beyond 2040, use linear extrapolation or cap at 2040 value
+  let reduction = reductionFactors[year];
+  if (!reduction) {
+    if (year > 2040) {
+      reduction = reductionFactors[2040];
+    } else {
+      // Interpolate for years between known values
+      const years = Object.keys(reductionFactors).map(Number).sort((a, b) => a - b);
+      const prevYear = years.filter(y => y < year).pop() || 2023;
+      const nextYear = years.find(y => y > year) || 2040;
+      const prevReduction = reductionFactors[prevYear];
+      const nextReduction = reductionFactors[nextYear];
+      const factor = (year - prevYear) / (nextYear - prevYear);
+      reduction = prevReduction + (nextReduction - prevReduction) * factor;
+    }
+  }
+  
   return baseCII * (1 - reduction);
 }
 

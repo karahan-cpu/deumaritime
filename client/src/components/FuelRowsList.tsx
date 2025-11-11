@@ -55,7 +55,7 @@ export function FuelRowsList({ value, onChange, title }: {
           </div>
         </div>
       ))}
-      <Button type="button" variant="link" onClick={addRow}>+ Add fuel type</Button>
+      <Button type="button" variant="ghost" onClick={addRow}>+ Add fuel type</Button>
     </div>
   );
 }

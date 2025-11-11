@@ -91,7 +91,7 @@ export function EngineRowsList({ value, onChange, title }: {
           </div>
         </div>
       ))}
-      <Button type="button" variant="link" onClick={addRow}>+ Add engine</Button>
+              <Button type="button" variant="ghost" onClick={addRow}>+ Add engine</Button>
     </div>
   );
 }

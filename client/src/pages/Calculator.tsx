@@ -15,6 +15,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Anchor, FileText, TrendingDown, Euro, DollarSign, BarChart3, Ship, Fuel, Globe } from "lucide-react";
 import { CIIRatingDisplay } from "@/components/CIIRatingDisplay";
+import { CIIForecastTable } from "@/components/CIIForecastTable";
 import { ComplianceBadge } from "@/components/ComplianceBadge";
 import { GHGIntensityChart } from "@/components/GHGIntensityChart";
 import type { ShipInfo } from "@shared/schema";
@@ -318,13 +319,24 @@ export default function Calculator() {
 
                     {/* CII Results */}
                     {ciiResult && (
-                      <div className="space-y-2">
-                        <h3 className="font-semibold text-lg">CII (Carbon Intensity Indicator)</h3>
-                        <CIIRatingDisplay
-                          rating={ciiResult.rating}
-                          attainedCII={ciiResult.attained}
-                          requiredCII={ciiResult.required}
-                        />
+                      <div className="space-y-4">
+                        <div className="space-y-2">
+                          <h3 className="font-semibold text-lg">CII (Carbon Intensity Indicator)</h3>
+                          <CIIRatingDisplay
+                            rating={ciiResult.rating}
+                            attainedCII={ciiResult.attained}
+                            requiredCII={ciiResult.required}
+                          />
+                        </div>
+                        {shipInfo && (
+                          <CIIForecastTable
+                            shipType={shipInfo.shipType}
+                            capacity={shipInfo.deadweight}
+                            attainedCII={ciiResult.attained}
+                            startYear={new Date().getFullYear()}
+                            endYear={2040}
+                          />
+                        )}
                       </div>
                     )}
 
