@@ -142,10 +142,12 @@ export default function Calculator() {
                 <ArrowLeftRight className="h-4 w-4" />
                 <span className={sidebarOpen ? 'block' : 'hidden'}>Risk manager</span>
               </button>
+              <div className={`pt-4 ${sidebarOpen ? 'opacity-100' : 'opacity-0'} transition-opacity`}>
+                <h2 className="px-3 text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                  Fleet Simulator
+                </h2>
+              </div>
             </nav>
-          </div>
-          <div className={`mt-6 pt-4 border-t ${sidebarOpen ? 'opacity-100' : 'opacity-0'} transition-opacity`}>
-            <h2 className="text-lg font-semibold">Fleet Simulator</h2>
           </div>
         </div>
       </aside>
