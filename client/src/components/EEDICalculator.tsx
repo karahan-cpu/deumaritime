@@ -30,8 +30,8 @@ export function EEDICalculator({ shipType, isNewBuild, yearBuilt, onResultCalcul
   const form = useForm<EEDIInput>({
     resolver: zodResolver(eediInputSchema),
     defaultValues: {
-      referenceSpeed: 0,
-      capacity: 0,
+      referenceSpeed: undefined,
+      capacity: undefined,
       mainEngines: [{ power: 0, sfc: 190, fuelType: "HFO" }],
       auxiliaryEngines: [],
     },
@@ -87,7 +87,7 @@ export function EEDICalculator({ shipType, isNewBuild, yearBuilt, onResultCalcul
       const compliant = attained <= required;
 
       const calculatedResult = { attained, required, compliant };
-      
+
       setResult(calculatedResult);
       setError(null); // Clear any previous errors on success
       if (onResultCalculated) {
@@ -135,6 +135,7 @@ export function EEDICalculator({ shipType, isNewBuild, yearBuilt, onResultCalcul
                   placeholder="e.g., 14.5"
                   data-testid="input-reference-speed"
                   min="0.01"
+                  onFocus={(e) => e.target.select()}
                 />
                 {form.formState.errors.referenceSpeed && (
                   <p className="text-sm text-destructive">{form.formState.errors.referenceSpeed.message}</p>
@@ -155,6 +156,7 @@ export function EEDICalculator({ shipType, isNewBuild, yearBuilt, onResultCalcul
                   placeholder="e.g., 85000"
                   data-testid="input-capacity"
                   min="0.01"
+                  onFocus={(e) => e.target.select()}
                 />
                 {form.formState.errors.capacity && (
                   <p className="text-sm text-destructive">{form.formState.errors.capacity.message}</p>

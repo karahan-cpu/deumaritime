@@ -9,51 +9,66 @@ interface GHGIntensityChartProps {
 }
 
 export function GHGIntensityChart({ attainedGFI, baseTarget, directTarget }: GHGIntensityChartProps) {
-  const baseline2008 = 93.3; // IMO GFI baseline (2008)
-  
-  const reductionTargets: Record<number, { base: number; direct: number }> = {
-    2028: { base: 0.04, direct: 0.17 },
-    2029: { base: 0.06, direct: 0.21 },
-    2030: { base: 0.08, direct: 0.21 },
-    2031: { base: 0.10, direct: 0.25 },
-    2032: { base: 0.12, direct: 0.29 },
-    2033: { base: 0.15, direct: 0.33 },
-    2034: { base: 0.20, direct: 0.38 },
-    2035: { base: 0.30, direct: 0.43 },
-    2036: { base: 0.35, direct: 0.48 },
-    2037: { base: 0.40, direct: 0.53 },
-    2038: { base: 0.45, direct: 0.58 },
-    2039: { base: 0.55, direct: 0.69 },
-    2040: { base: 0.65, direct: 0.80 },
-  };
+  // IMO GFI baseline (2008)
+  const baseline2008 = 93.3;
 
-  const chartData = Object.entries(reductionTargets).map(([year, targets]) => {
-    const yearBaseTarget = baseline2008 * (1 - targets.base);
-    const yearDirectTarget = baseline2008 * (1 - targets.direct);
-    
-    // Zones for IMO GFI:
-    // - Surplus zone: below direct target (green)
-    // - Tier 1 zone: between direct and base target (yellow/amber)
-    // - Tier 2 zone: above base target (red)
-    const surplusZone = yearDirectTarget;
-    const tier1Zone = yearBaseTarget - yearDirectTarget;
-    const tier2Zone = baseline2008 - yearBaseTarget; // Above base target
-    
-    return {
-      year: parseInt(year),
+  // Define stepped targets based on the reference image
+  // 2028-2030: Step 1
+  // 2031-2034: Step 2
+  // 2035-2039: Step 3
+  // 2040: Step 4
+  const steps = [
+    { start: 2028, end: 2030, baseRec: 0.04, directRec: 0.17 },
+    { start: 2031, end: 2034, baseRec: 0.10, directRec: 0.25 },
+    { start: 2035, end: 2039, baseRec: 0.30, directRec: 0.43 },
+    { start: 2040, end: 2040, baseRec: 0.65, directRec: 0.80 },
+  ];
+
+  // Constant ZNZ Threshold
+  const ZNZ_THRESHOLD = 19.3;
+
+  const chartData: any[] = [];
+
+  // Generate data for each year from 2028 to 2040
+  for (let year = 2028; year <= 2040; year++) {
+    const step = steps.find(s => year >= s.start && year <= s.end) || steps[steps.length - 1];
+
+    // Calculate absolute values
+    const yearBaseTarget = baseline2008 * (1 - step.baseRec);
+    const yearDirectTarget = baseline2008 * (1 - step.directRec);
+
+    chartData.push({
+      year,
       baseTarget: yearBaseTarget,
       directTarget: yearDirectTarget,
-      surplusZone,
-      tier1Zone,
-      tier2Zone,
-    };
-  });
+      znzThreshold: ZNZ_THRESHOLD,
 
-  // Max limit should be the baseline (2008) since zones are stacked up to baseline
-  const maxLimit = baseline2008;
-  const yAxisMax = attainedGFI !== undefined 
+      // Areas for stacking
+      znzZone: ZNZ_THRESHOLD, // Bottom Green Zone
+      surplusZone: Math.max(0, yearDirectTarget - ZNZ_THRESHOLD), // White/Transparent Zone
+      tier1Zone: Math.max(0, yearBaseTarget - yearDirectTarget), // Light Blue Zone
+      tier2Zone: Math.max(0, baseline2008 * 1.1 - yearBaseTarget), // Above Base
+    });
+  }
+
+  // Max limit for Y axis
+  const maxLimit = 100;
+  const yAxisMax = attainedGFI !== undefined
     ? Math.max(maxLimit, attainedGFI) * 1.05
-    : maxLimit * 1.05;
+    : maxLimit;
+
+  // Custom Tick for ZNZ
+  const CustomYAxisTick = (props: any) => {
+    const { x, y, payload } = props;
+    if (Math.abs(payload.value - 19.3) < 1) return null; // Skip near ZNZ
+    return (
+      <g transform={`translate(${x},${y})`}>
+        <text x={0} y={0} dy={16} textAnchor="end" fill="#64748b" fontSize={12}>
+          {payload.value}
+        </text>
+      </g>
+    );
+  };
 
   return (
     <Card data-testid="card-ghg-intensity-chart">
@@ -63,141 +78,188 @@ export function GHGIntensityChart({ attainedGFI, baseTarget, directTarget }: GHG
             <TrendingDown className="h-5 w-5 text-primary" />
           </div>
           <div>
-            <CardTitle>IMO GHG Fuel Intensity (GFI)</CardTitle>
+            <CardTitle>IMO Net-Zero Framework</CardTitle>
             <CardDescription>
-              Two-tier GHG pricing framework (2028-2040)
+              GHG Fuel Intensity Targets (2028-2040)
             </CardDescription>
           </div>
         </div>
       </CardHeader>
       <CardContent>
-        <ResponsiveContainer width="100%" height={450}>
+        <ResponsiveContainer width="100%" height={500}>
           <ComposedChart
             data={chartData}
-            margin={{ top: 20, right: 30, left: 20, bottom: 20 }}
+            margin={{ top: 30, right: 30, left: 20, bottom: 20 }}
           >
             <defs>
-              <linearGradient id="tier2Gradient" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="#60a5fa" stopOpacity={0.8} />
-                <stop offset="100%" stopColor="#93c5fd" stopOpacity={0.4} />
+              <linearGradient id="tier2Fill" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="#60a5fa" stopOpacity={0.7} />
+                <stop offset="100%" stopColor="#60a5fa" stopOpacity={0.7} />
               </linearGradient>
-              <linearGradient id="tier1Gradient" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="#93c5fd" stopOpacity={0.6} />
-                <stop offset="100%" stopColor="#bfdbfe" stopOpacity={0.3} />
-              </linearGradient>
-              <linearGradient id="complianceGradient" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="#e0f2fe" stopOpacity={0.5} />
-                <stop offset="100%" stopColor="#f0f9ff" stopOpacity={0.2} />
-              </linearGradient>
-              <linearGradient id="greenZone" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="#86efac" stopOpacity={0.6} />
-                <stop offset="100%" stopColor="#bbf7d0" stopOpacity={0.3} />
+              <linearGradient id="tier1Fill" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="#e0f2fe" stopOpacity={0.6} />
+                <stop offset="100%" stopColor="#e0f2fe" stopOpacity={0.6} />
               </linearGradient>
             </defs>
-            
-            <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" opacity={0.5} />
-            
+
+            <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" opacity={0.5} vertical={true} horizontal={true} />
+
             <XAxis
               dataKey="year"
               stroke="#64748b"
               tick={{ fill: '#64748b', fontSize: 12 }}
-              tickLine={{ stroke: '#cbd5e1' }}
+              tickLine={false}
+              axisLine={{ stroke: '#cbd5e1' }}
+              ticks={[2028, 2029, 2030, 2031, 2032, 2033, 2034, 2035, 2040]}
             >
-              <Label value="Year" position="insideBottom" offset={-10} style={{ fill: '#475569', fontSize: 13, fontWeight: 600 }} />
+              <Label value="Year" position="insideBottom" offset={-10} style={{ fill: '#475569', fontSize: 13 }} />
             </XAxis>
-            
+
             <YAxis
               stroke="#64748b"
               tick={{ fill: '#64748b', fontSize: 12 }}
-              tickLine={{ stroke: '#cbd5e1' }}
+              tickLine={false}
               domain={[0, yAxisMax]}
+              ticks={[0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 93.3]}
             >
-              <Label 
-                value="GHG Fuel Intensity (gCO₂eq/MJ)" 
-                angle={-90} 
-                position="insideLeft" 
-                style={{ fill: '#475569', fontSize: 13, fontWeight: 600, textAnchor: 'middle' }}
+              <Label
+                value="GHG Fuel Intensity (gCO₂eq/MJ)"
+                angle={-90}
+                position="insideLeft"
+                style={{ fill: '#475569', fontSize: 13, textAnchor: 'middle' }}
               />
             </YAxis>
-            
+
             <Tooltip
-              contentStyle={{
-                backgroundColor: 'rgba(255, 255, 255, 0.98)',
-                border: '1px solid #cbd5e1',
-                borderRadius: '8px',
-                boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
-              }}
-              labelStyle={{ color: '#0f172a', fontWeight: 600, marginBottom: 8 }}
               formatter={(value: number, name: string) => {
-                if (name === 'baseTarget' || name === 'directTarget') {
-                  const displayName = name === 'baseTarget' ? 'Base Target' : 'Direct Target';
-                  return [value.toFixed(2) + ' gCO₂eq/MJ', displayName];
-                }
-                return null;
+                if (name.includes("Zone")) return null;
+                return [value.toFixed(1), name];
               }}
-            />
-            
-            <Legend 
-              verticalAlign="top" 
-              height={36}
-              iconType="line"
-              wrapperStyle={{ paddingBottom: '10px' }}
+              labelStyle={{ color: '#0f172a', fontWeight: 600 }}
+              contentStyle={{ border: '1px solid #e2e8f0', borderRadius: '8px' }}
             />
 
+            {/* 1. ZNZ Reward Zone (Bottom Green) */}
+            <Area
+              type="stepAfter"
+              dataKey="znzZone"
+              stackId="1"
+              stroke="#86efac"
+              strokeWidth={2}
+              fill="#dcfce7"
+              fillOpacity={1}
+              name="ZNZ Reward Zone"
+              isAnimationActive={false}
+            />
+
+            {/* 2. Surplus Zone (White/Transparent in between) */}
             <Area
               type="stepAfter"
               dataKey="surplusZone"
               stackId="1"
               stroke="none"
-              fill="url(#greenZone)"
-              fillOpacity={1}
-              name="Surplus Zone (No Penalty)"
+              fill="#ffffff"
+              fillOpacity={0}
+              name="Surplus Zone"
               isAnimationActive={false}
             />
-            
+
+            {/* 3. Tier 1 Zone (Light Blue) */}
             <Area
               type="stepAfter"
               dataKey="tier1Zone"
               stackId="1"
-              stroke="none"
-              fill="url(#tier1Gradient)"
-              fillOpacity={1}
-              name="Tier 1 Penalty Zone ($100/tCO₂eq)"
+              stroke="#bae6fd"
+              fill="#e0f2fe"
+              fillOpacity={0.8}
+              name="Tier 1 Zone"
               isAnimationActive={false}
             />
 
+            {/* 4. Tier 2 Zone (Dark Blue) */}
             <Area
               type="stepAfter"
               dataKey="tier2Zone"
               stackId="1"
-              stroke="none"
-              fill="url(#tier2Gradient)"
-              fillOpacity={1}
-              name="Tier 2 Penalty Zone ($380/tCO₂eq)"
+              stroke="#60a5fa"
+              fill="#93c5fd"
+              fillOpacity={0.9}
+              name="Tier 2 Zone"
               isAnimationActive={false}
             />
-            
+
+            {/* Lines on top for sharp edges */}
             <Line
               type="stepAfter"
               dataKey="baseTarget"
               stroke="#2563eb"
-              strokeWidth={3}
-              name="Base Target"
+              strokeWidth={2}
               dot={false}
+              name="Base Target"
               isAnimationActive={false}
             />
-            
             <Line
               type="stepAfter"
               dataKey="directTarget"
-              stroke="#0284c7"
+              stroke="#0ea5e9"
               strokeWidth={2}
-              strokeDasharray="5 5"
-              name="Direct Compliance Target"
               dot={false}
+              name="Direct Compliance Target"
               isAnimationActive={false}
             />
-            
+            <Line
+              type="stepAfter"
+              dataKey="znzThreshold"
+              stroke="#10b981"
+              strokeWidth={2}
+              dot={false}
+              name="ZNZ Threshold"
+              isAnimationActive={false}
+            />
+
+            {/* Reference Line for Baseline */}
+            <ReferenceLine y={93.3} stroke="#94a3b8" strokeDasharray="3 3">
+              <Label value="2008 Baseline GFI (93.3)" position="insideTopRight" fill="#f8fafc" fontSize={10} />
+            </ReferenceLine>
+
+            {/* ZNZ Label */}
+            <ReferenceLine y={19.3} stroke="none">
+              <Label value="ZNZ Threshold" position="insideTopLeft" fill="#10b981" fontSize={11} offset={10} />
+            </ReferenceLine>
+            <ReferenceLine y={5} stroke="none">
+              <Label value="ZNZ Reward" position="center" fill="#15803d" fontSize={10} className="bg-green-100 p-1 rounded" />
+            </ReferenceLine>
+
+            {/* Base Target Label */}
+            <ReferenceLine y={94} stroke="none">
+              <Label value="Base Target" position="insideTopLeft" fill="#2563eb" fontSize={11} />
+            </ReferenceLine>
+
+            {/* Direct Target Label */}
+            <ReferenceLine y={80} stroke="none">
+              <Label value="Direct Compliance Target" position="insideTopLeft" fill="#0ea5e9" fontSize={11} />
+            </ReferenceLine>
+
+            {/* Annotation Boxes */}
+            <ReferenceLine x={2032} stroke="none">
+              <Label
+                value="$380 / t CO₂eq (Tier 2: 2028-30)"
+                position="top"
+                fill="#1e3a8a"
+                offset={180}
+                className="text-[10px] font-mono bg-white/80"
+              />
+            </ReferenceLine>
+            <ReferenceLine x={2032} stroke="none">
+              <Label
+                value="$100 / t CO₂eq (Tier 1: 2028-30)"
+                position="top"
+                fill="#0f172a"
+                offset={120}
+                className="text-[10px] font-mono"
+              />
+            </ReferenceLine>
+
             {attainedGFI !== undefined && (
               <ReferenceLine
                 y={attainedGFI}
@@ -205,18 +267,18 @@ export function GHGIntensityChart({ attainedGFI, baseTarget, directTarget }: GHG
                 strokeWidth={3}
                 strokeDasharray="5 5"
               >
-                <Label 
-                  value={`Your GFI: ${attainedGFI.toFixed(2)} gCO₂eq/MJ`}
-                  position="top"
+                <Label
+                  value={`Your GFI: ${attainedGFI.toFixed(1)}`}
+                  position="right"
                   fill="#dc2626"
                   fontSize={12}
-                  fontWeight={600}
+                  fontWeight={800}
                 />
               </ReferenceLine>
             )}
           </ComposedChart>
         </ResponsiveContainer>
-        
+
         <div className="mt-6 grid grid-cols-1 md:grid-cols-4 gap-4 text-sm">
           <div className="p-3 border rounded-lg bg-gradient-to-br from-blue-50 to-transparent dark:from-blue-950/20" data-testid="metric-2028-base">
             <div className="text-muted-foreground font-semibold">2028 Base Target</div>

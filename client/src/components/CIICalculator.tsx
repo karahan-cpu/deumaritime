@@ -7,10 +7,11 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { TrendingDown } from "lucide-react";
+import { TrendingDown, Sparkles } from "lucide-react";
 import { useState } from "react";
 import { calculateCII, calculateRequiredCII, getCIIRating } from "@/lib/calculations";
 import { CIIRatingDisplay } from "./CIIRatingDisplay";
+import { CIIOptimizationDialog } from "./CIIOptimizationDialog";
 
 interface CIICalculatorProps {
   shipType: string;
@@ -23,15 +24,16 @@ export function CIICalculator({ shipType, onResultCalculated }: CIICalculatorPro
     required: number;
     rating: "A" | "B" | "C" | "D" | "E";
   } | null>(null);
+  const [optimizationOpen, setOptimizationOpen] = useState(false);
 
   const form = useForm<CIIInput>({
     resolver: zodResolver(ciiInputSchema),
     defaultValues: {
-      annualFuelConsumption: 0,
-      distanceTraveled: 0,
-      capacity: 0,
+      annualFuelConsumption: undefined,
+      distanceTraveled: undefined,
+      capacity: undefined,
       fuelType: "HFO",
-      year: new Date().getFullYear(),
+      year: undefined,
     },
   });
 
@@ -53,6 +55,8 @@ export function CIICalculator({ shipType, onResultCalculated }: CIICalculatorPro
     }
     console.log("CII calculated:", calculatedResult);
   };
+
+  const currentFormValues = form.watch();
 
   return (
     <div className="space-y-6">
@@ -83,6 +87,7 @@ export function CIICalculator({ shipType, onResultCalculated }: CIICalculatorPro
                   {...form.register("annualFuelConsumption", { valueAsNumber: true })}
                   placeholder="e.g., 18500"
                   data-testid="input-fuel-consumption"
+                  onFocus={(e) => e.target.select()}
                 />
               </div>
 
@@ -95,6 +100,7 @@ export function CIICalculator({ shipType, onResultCalculated }: CIICalculatorPro
                   {...form.register("distanceTraveled", { valueAsNumber: true })}
                   placeholder="e.g., 95000"
                   data-testid="input-distance-traveled"
+                  onFocus={(e) => e.target.select()}
                 />
               </div>
 
@@ -107,6 +113,7 @@ export function CIICalculator({ shipType, onResultCalculated }: CIICalculatorPro
                   {...form.register("capacity", { valueAsNumber: true })}
                   placeholder="e.g., 85000"
                   data-testid="input-cii-capacity"
+                  onFocus={(e) => e.target.select()}
                 />
               </div>
 
@@ -137,23 +144,54 @@ export function CIICalculator({ shipType, onResultCalculated }: CIICalculatorPro
                   {...form.register("year", { valueAsNumber: true })}
                   placeholder="e.g., 2025"
                   data-testid="input-cii-year"
+                  onFocus={(e) => e.target.select()}
                 />
               </div>
             </div>
 
-            <Button type="submit" className="w-full" data-testid="button-calculate-cii">
-              Calculate CII Rating
-            </Button>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <Button type="submit" className="w-full" data-testid="button-calculate-cii">
+                Calculate CII Rating
+              </Button>
+
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full"
+                disabled={!result}
+                onClick={() => setOptimizationOpen(true)}
+                data-testid="button-optimize-cii"
+              >
+                <Sparkles className="h-4 w-4 mr-2" />
+                Optimize for Better Rating
+              </Button>
+            </div>
           </form>
         </CardContent>
       </Card>
 
       {result && (
-        <CIIRatingDisplay
-          rating={result.rating}
-          attainedCII={result.attained}
-          requiredCII={result.required}
-        />
+        <>
+          <CIIRatingDisplay
+            rating={result.rating}
+            attainedCII={result.attained}
+            requiredCII={result.required}
+          />
+
+          <CIIOptimizationDialog
+            open={optimizationOpen}
+            onOpenChange={setOptimizationOpen}
+            currentParams={{
+              annualFuelConsumption: currentFormValues.annualFuelConsumption,
+              distanceTraveled: currentFormValues.distanceTraveled,
+              capacity: currentFormValues.capacity,
+              fuelType: currentFormValues.fuelType,
+              year: currentFormValues.year,
+            }}
+            shipType={shipType}
+            currentRating={result.rating}
+          />
+        </>
       )}
     </div>
   );

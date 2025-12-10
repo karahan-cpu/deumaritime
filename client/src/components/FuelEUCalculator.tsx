@@ -27,11 +27,11 @@ export function FuelEUCalculator({ onResultCalculated }: FuelEUCalculatorProps =
   const form = useForm<FuelEUInput>({
     resolver: zodResolver(fuelEUInputSchema),
     defaultValues: {
-      totalEnergyUsed: 0,
-      ghgEmissions: 0,
-      euPortCalls: 0,
-      intraEUVoyages: 0,
-      year: 2025,
+      totalEnergyUsed: undefined,
+      ghgEmissions: undefined,
+      euPortCalls: undefined,
+      intraEUVoyages: undefined,
+      year: undefined,
       fuelRows: [],
     },
   });
@@ -119,6 +119,7 @@ export function FuelEUCalculator({ onResultCalculated }: FuelEUCalculatorProps =
                   {...form.register("totalEnergyUsed", { valueAsNumber: true })}
                   placeholder="e.g., 750000000"
                   data-testid="input-total-energy"
+                  onFocus={(e) => e.target.select()}
                 />
               </div>
 
@@ -131,6 +132,7 @@ export function FuelEUCalculator({ onResultCalculated }: FuelEUCalculatorProps =
                   {...form.register("ghgEmissions", { valueAsNumber: true })}
                   placeholder="e.g., 68500000000"
                   data-testid="input-ghg-emissions"
+                  onFocus={(e) => e.target.select()}
                 />
               </div>
 
@@ -142,6 +144,7 @@ export function FuelEUCalculator({ onResultCalculated }: FuelEUCalculatorProps =
                   {...form.register("euPortCalls", { valueAsNumber: true })}
                   placeholder="e.g., 45"
                   data-testid="input-eu-port-calls"
+                  onFocus={(e) => e.target.select()}
                 />
               </div>
 
@@ -153,6 +156,7 @@ export function FuelEUCalculator({ onResultCalculated }: FuelEUCalculatorProps =
                   {...form.register("intraEUVoyages", { valueAsNumber: true })}
                   placeholder="e.g., 12"
                   data-testid="input-intra-eu-voyages"
+                  onFocus={(e) => e.target.select()}
                 />
               </div>
 
@@ -164,6 +168,7 @@ export function FuelEUCalculator({ onResultCalculated }: FuelEUCalculatorProps =
                   {...form.register("year", { valueAsNumber: true })}
                   placeholder="e.g., 2025"
                   data-testid="input-fueleu-year"
+                  onFocus={(e) => e.target.select()}
                 />
               </div>
             </div>
@@ -174,9 +179,9 @@ export function FuelEUCalculator({ onResultCalculated }: FuelEUCalculatorProps =
               </div>
             )}
 
-            <Button 
-              type="submit" 
-              className="w-full" 
+            <Button
+              type="submit"
+              className="w-full"
               data-testid="button-calculate-fueleu"
               disabled={
                 (!derived && (!form.watch("totalEnergyUsed") || form.watch("totalEnergyUsed") <= 0)) ||

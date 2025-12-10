@@ -28,9 +28,9 @@ export function ShipInfoForm({ onSubmit, defaultValues, onAddToFleet, showAddToF
     defaultValues: defaultValues || {
       shipName: "",
       shipType: "Bulk Carrier",
-      deadweight: 0,
-      grossTonnage: 0,
-      yearBuilt: new Date().getFullYear(),
+      deadweight: undefined,
+      grossTonnage: undefined,
+      yearBuilt: undefined,
       isNewBuild: false,
     },
   });
@@ -96,6 +96,7 @@ export function ShipInfoForm({ onSubmit, defaultValues, onAddToFleet, showAddToF
                 {...form.register("deadweight", { valueAsNumber: true })}
                 placeholder="e.g., 85000"
                 data-testid="input-deadweight"
+                onFocus={(e) => e.target.select()}
               />
               {form.formState.errors.deadweight && (
                 <p className="text-sm text-destructive">{form.formState.errors.deadweight.message}</p>
@@ -110,6 +111,7 @@ export function ShipInfoForm({ onSubmit, defaultValues, onAddToFleet, showAddToF
                 {...form.register("grossTonnage", { valueAsNumber: true })}
                 placeholder="e.g., 52000"
                 data-testid="input-gross-tonnage"
+                onFocus={(e) => e.target.select()}
               />
               {form.formState.errors.grossTonnage && (
                 <p className="text-sm text-destructive">{form.formState.errors.grossTonnage.message}</p>
@@ -124,6 +126,7 @@ export function ShipInfoForm({ onSubmit, defaultValues, onAddToFleet, showAddToF
                 {...form.register("yearBuilt", { valueAsNumber: true })}
                 placeholder="e.g., 2020"
                 data-testid="input-year-built"
+                onFocus={(e) => e.target.select()}
               />
               {form.formState.errors.yearBuilt && (
                 <p className="text-sm text-destructive">{form.formState.errors.yearBuilt.message}</p>

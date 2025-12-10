@@ -30,8 +30,8 @@ export function EEXICalculator({ shipType, yearBuilt, onResultCalculated }: EEXI
   const form = useForm<EEXIInput>({
     resolver: zodResolver(eexiInputSchema),
     defaultValues: {
-      speed: 0,
-      capacity: 0,
+      speed: undefined,
+      capacity: undefined,
       hasEPL: false,
       mainEngines: [{ power: 0, sfc: 190, fuelType: "HFO" }],
       auxiliaryEngines: [],
@@ -84,7 +84,7 @@ export function EEXICalculator({ shipType, yearBuilt, onResultCalculated }: EEXI
       const compliant = attained <= required;
 
       const calculatedResult = { attained, required, compliant };
-      
+
       // Debug logging (can be removed in production)
       console.log("EEXI Calculation:", {
         mainEngines: mainEnginesList.length,
@@ -96,7 +96,7 @@ export function EEXICalculator({ shipType, yearBuilt, onResultCalculated }: EEXI
         required,
         compliant,
       });
-      
+
       setResult(calculatedResult);
       setError(null); // Clear any previous errors on success
       if (onResultCalculated) onResultCalculated(calculatedResult);
@@ -130,17 +130,18 @@ export function EEXICalculator({ shipType, yearBuilt, onResultCalculated }: EEXI
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-2">
                 <Label htmlFor="speed">Reference Speed (knots) *</Label>
-                <Input 
-                  id="speed" 
-                  type="number" 
-                  step="0.01" 
-                  {...form.register("speed", { 
+                <Input
+                  id="speed"
+                  type="number"
+                  step="0.01"
+                  {...form.register("speed", {
                     valueAsNumber: true,
                     required: "Reference speed is required",
                     min: { value: 0.01, message: "Speed must be greater than 0" }
-                  })} 
+                  })}
                   placeholder="e.g., 14.5"
                   min="0.01"
+                  onFocus={(e) => e.target.select()}
                 />
                 {form.formState.errors.speed && (
                   <p className="text-sm text-destructive">{form.formState.errors.speed.message}</p>
@@ -148,17 +149,18 @@ export function EEXICalculator({ shipType, yearBuilt, onResultCalculated }: EEXI
               </div>
               <div className="space-y-2">
                 <Label htmlFor="capacity">Capacity (DWT) *</Label>
-                <Input 
-                  id="capacity" 
-                  type="number" 
-                  step="0.01" 
-                  {...form.register("capacity", { 
+                <Input
+                  id="capacity"
+                  type="number"
+                  step="0.01"
+                  {...form.register("capacity", {
                     valueAsNumber: true,
                     required: "Capacity is required",
                     min: { value: 0.01, message: "Capacity must be greater than 0" }
-                  })} 
+                  })}
                   placeholder="e.g., 85000"
                   min="0.01"
+                  onFocus={(e) => e.target.select()}
                 />
                 {form.formState.errors.capacity && (
                   <p className="text-sm text-destructive">{form.formState.errors.capacity.message}</p>
@@ -196,10 +198,10 @@ export function EEXICalculator({ shipType, yearBuilt, onResultCalculated }: EEXI
               </div>
             )}
 
-            <Button 
-              type="submit" 
-              className="w-full" 
-              data-testid="button-calculate-eexi" 
+            <Button
+              type="submit"
+              className="w-full"
+              data-testid="button-calculate-eexi"
               disabled={
                 (mainEngines.length === 0 && auxiliaryEngines.length === 0) ||
                 (!mainEngines.some(e => e.power > 0 && e.sfc > 0) && !auxiliaryEngines.some(e => e.power > 0 && e.sfc > 0)) ||

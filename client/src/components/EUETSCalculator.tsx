@@ -24,11 +24,11 @@ export function EUETSCalculator({ onResultCalculated }: EUETSCalculatorProps = {
   const form = useForm<EUETSInput>({
     resolver: zodResolver(euETSInputSchema),
     defaultValues: {
-      totalCO2Emissions: 0,
-      intraEUEmissions: 0,
-      euPortEmissions: 0,
-      carbonPrice: 85,
-      year: 2025,
+      totalCO2Emissions: undefined,
+      intraEUEmissions: undefined,
+      euPortEmissions: undefined,
+      carbonPrice: undefined,
+      year: undefined,
     },
   });
 
@@ -76,6 +76,7 @@ export function EUETSCalculator({ onResultCalculated }: EUETSCalculatorProps = {
                   {...form.register("totalCO2Emissions", { valueAsNumber: true })}
                   placeholder="e.g., 58000"
                   data-testid="input-total-co2"
+                  onFocus={(e) => e.target.select()}
                 />
               </div>
 
@@ -88,6 +89,7 @@ export function EUETSCalculator({ onResultCalculated }: EUETSCalculatorProps = {
                   {...form.register("intraEUEmissions", { valueAsNumber: true })}
                   placeholder="e.g., 8500"
                   data-testid="input-intra-eu-co2"
+                  onFocus={(e) => e.target.select()}
                 />
               </div>
 
@@ -100,6 +102,7 @@ export function EUETSCalculator({ onResultCalculated }: EUETSCalculatorProps = {
                   {...form.register("euPortEmissions", { valueAsNumber: true })}
                   placeholder="e.g., 2400"
                   data-testid="input-eu-port-co2"
+                  onFocus={(e) => e.target.select()}
                 />
               </div>
 
@@ -112,6 +115,7 @@ export function EUETSCalculator({ onResultCalculated }: EUETSCalculatorProps = {
                   {...form.register("carbonPrice", { valueAsNumber: true })}
                   placeholder="Current: ~€85"
                   data-testid="input-carbon-price"
+                  onFocus={(e) => e.target.select()}
                 />
               </div>
 
@@ -123,6 +127,7 @@ export function EUETSCalculator({ onResultCalculated }: EUETSCalculatorProps = {
                   {...form.register("year", { valueAsNumber: true })}
                   placeholder="2024, 2025, or 2026"
                   data-testid="input-euets-year"
+                  onFocus={(e) => e.target.select()}
                 />
               </div>
             </div>
