@@ -12,44 +12,57 @@ export function GHGIntensityChart({ attainedGFI, baseTarget, directTarget }: GHG
   // IMO GFI baseline (2008)
   const baseline2008 = 93.3;
 
-  // Define stepped targets based on the reference image
-  // 2028-2030: Step 1
-  // 2031-2034: Step 2
-  // 2035-2039: Step 3
-  // 2040: Step 4
-  const steps = [
-    { start: 2028, end: 2030, baseRec: 0.04, directRec: 0.17 },
-    { start: 2031, end: 2034, baseRec: 0.10, directRec: 0.25 },
-    { start: 2035, end: 2039, baseRec: 0.30, directRec: 0.43 },
-    { start: 2040, end: 2040, baseRec: 0.65, directRec: 0.80 },
-  ];
-
-  // Constant ZNZ Threshold
-  const ZNZ_THRESHOLD = 19.3;
+  // Define annual reduction targets (percentage reduction from baseline)
+  // Modeled to match the visual "staircase" reference
+  const reductionTargets: Record<number, { base: number; direct: number }> = {
+    2028: { base: 0.04, direct: 0.17 },
+    2029: { base: 0.06, direct: 0.19 },
+    2030: { base: 0.08, direct: 0.21 }, // Matching typical 2030 checkpoints
+    2031: { base: 0.11, direct: 0.24 },
+    2032: { base: 0.14, direct: 0.27 },
+    2033: { base: 0.17, direct: 0.30 },
+    2034: { base: 0.20, direct: 0.33 },
+    2035: { base: 0.25, direct: 0.38 }, // ZNZ Drop year
+    2036: { base: 0.30, direct: 0.45 },
+    2037: { base: 0.38, direct: 0.53 },
+    2038: { base: 0.46, direct: 0.61 },
+    2039: { base: 0.55, direct: 0.70 },
+    2040: { base: 0.65, direct: 0.80 },
+  };
 
   const chartData: any[] = [];
 
   // Generate data for each year from 2028 to 2040
-  for (let year = 2028; year <= 2040; year++) {
-    const step = steps.find(s => year >= s.start && year <= s.end) || steps[steps.length - 1];
+  Object.keys(reductionTargets).forEach((yearStr) => {
+    const year = parseInt(yearStr);
+    const target = reductionTargets[year];
 
     // Calculate absolute values
-    const yearBaseTarget = baseline2008 * (1 - step.baseRec);
-    const yearDirectTarget = baseline2008 * (1 - step.directRec);
+    const yearBaseTarget = baseline2008 * (1 - target.base);
+    const yearDirectTarget = baseline2008 * (1 - target.direct);
+
+    // ZNZ Threshold: High (19.3) until 2034, then drops to ~13.5 from 2035
+    const yearZNZ = year < 2035 ? 19.3 : 13.5;
+
+    // Zones for stacking Area Chart (Bottom to Top)
+    // 1. ZNZ Reward Zone (0 to ZNZ) -> Green
+    // 2. Surplus Zone (ZNZ to Direct) -> White
+    // 3. Tier 1 (Direct to Base) -> Light Blue
+    // 4. Tier 2 (Base to Max) -> Dark Blue
 
     chartData.push({
       year,
       baseTarget: yearBaseTarget,
       directTarget: yearDirectTarget,
-      znzThreshold: ZNZ_THRESHOLD,
+      znzThreshold: yearZNZ,
 
       // Areas for stacking
-      znzZone: ZNZ_THRESHOLD, // Bottom Green Zone
-      surplusZone: Math.max(0, yearDirectTarget - ZNZ_THRESHOLD), // White/Transparent Zone
-      tier1Zone: Math.max(0, yearBaseTarget - yearDirectTarget), // Light Blue Zone
-      tier2Zone: Math.max(0, baseline2008 * 1.1 - yearBaseTarget), // Above Base
+      znzZone: yearZNZ,
+      surplusZone: Math.max(0, yearDirectTarget - yearZNZ),
+      tier1Zone: Math.max(0, yearBaseTarget - yearDirectTarget),
+      tier2Zone: Math.max(0, baseline2008 * 1.1 - yearBaseTarget),
     });
-  }
+  });
 
   // Max limit for Y axis
   const maxLimit = 100;
@@ -60,7 +73,7 @@ export function GHGIntensityChart({ attainedGFI, baseTarget, directTarget }: GHG
   // Custom Tick for ZNZ
   const CustomYAxisTick = (props: any) => {
     const { x, y, payload } = props;
-    if (Math.abs(payload.value - 19.3) < 1) return null; // Skip near ZNZ
+    if (Math.abs(payload.value - 19.3) < 1 && Math.abs(payload.value - 13.5) < 1) return null; // Skip near ZNZ
     return (
       <g transform={`translate(${x},${y})`}>
         <text x={0} y={0} dy={16} textAnchor="end" fill="#64748b" fontSize={12}>
@@ -93,12 +106,12 @@ export function GHGIntensityChart({ attainedGFI, baseTarget, directTarget }: GHG
           >
             <defs>
               <linearGradient id="tier2Fill" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="#60a5fa" stopOpacity={0.7} />
-                <stop offset="100%" stopColor="#60a5fa" stopOpacity={0.7} />
+                <stop offset="0%" stopColor="#60a5fa" stopOpacity={0.9} />
+                <stop offset="100%" stopColor="#60a5fa" stopOpacity={0.9} />
               </linearGradient>
               <linearGradient id="tier1Fill" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="#e0f2fe" stopOpacity={0.6} />
-                <stop offset="100%" stopColor="#e0f2fe" stopOpacity={0.6} />
+                <stop offset="0%" stopColor="#bfdbfe" stopOpacity={0.9} />
+                <stop offset="100%" stopColor="#bfdbfe" stopOpacity={0.9} />
               </linearGradient>
             </defs>
 
@@ -110,7 +123,7 @@ export function GHGIntensityChart({ attainedGFI, baseTarget, directTarget }: GHG
               tick={{ fill: '#64748b', fontSize: 12 }}
               tickLine={false}
               axisLine={{ stroke: '#cbd5e1' }}
-              ticks={[2028, 2029, 2030, 2031, 2032, 2033, 2034, 2035, 2040]}
+              ticks={[2028, 2029, 2030, 2031, 2032, 2033, 2034, 2035, 2036, 2037, 2038, 2039, 2040]}
             >
               <Label value="Year" position="insideBottom" offset={-10} style={{ fill: '#475569', fontSize: 13 }} />
             </XAxis>
@@ -170,8 +183,8 @@ export function GHGIntensityChart({ attainedGFI, baseTarget, directTarget }: GHG
               dataKey="tier1Zone"
               stackId="1"
               stroke="#bae6fd"
-              fill="#e0f2fe"
-              fillOpacity={0.8}
+              fill="#bfdbfe"
+              fillOpacity={1}
               name="Tier 1 Zone"
               isAnimationActive={false}
             />
@@ -182,8 +195,8 @@ export function GHGIntensityChart({ attainedGFI, baseTarget, directTarget }: GHG
               dataKey="tier2Zone"
               stackId="1"
               stroke="#60a5fa"
-              fill="#93c5fd"
-              fillOpacity={0.9}
+              fill="#60a5fa"
+              fillOpacity={1}
               name="Tier 2 Zone"
               isAnimationActive={false}
             />
@@ -192,7 +205,7 @@ export function GHGIntensityChart({ attainedGFI, baseTarget, directTarget }: GHG
             <Line
               type="stepAfter"
               dataKey="baseTarget"
-              stroke="#2563eb"
+              stroke="#1e40af"
               strokeWidth={2}
               dot={false}
               name="Base Target"
@@ -201,7 +214,7 @@ export function GHGIntensityChart({ attainedGFI, baseTarget, directTarget }: GHG
             <Line
               type="stepAfter"
               dataKey="directTarget"
-              stroke="#0ea5e9"
+              stroke="#2563eb"
               strokeWidth={2}
               dot={false}
               name="Direct Compliance Target"
@@ -210,7 +223,7 @@ export function GHGIntensityChart({ attainedGFI, baseTarget, directTarget }: GHG
             <Line
               type="stepAfter"
               dataKey="znzThreshold"
-              stroke="#10b981"
+              stroke="#15803d"
               strokeWidth={2}
               dot={false}
               name="ZNZ Threshold"
@@ -224,7 +237,7 @@ export function GHGIntensityChart({ attainedGFI, baseTarget, directTarget }: GHG
 
             {/* ZNZ Label */}
             <ReferenceLine y={19.3} stroke="none">
-              <Label value="ZNZ Threshold" position="insideTopLeft" fill="#10b981" fontSize={11} offset={10} />
+              <Label value="ZNZ Threshold" position="insideTopLeft" fill="#15803d" fontSize={11} offset={10} />
             </ReferenceLine>
             <ReferenceLine y={5} stroke="none">
               <Label value="ZNZ Reward" position="center" fill="#15803d" fontSize={10} className="bg-green-100 p-1 rounded" />
@@ -232,16 +245,16 @@ export function GHGIntensityChart({ attainedGFI, baseTarget, directTarget }: GHG
 
             {/* Base Target Label */}
             <ReferenceLine y={94} stroke="none">
-              <Label value="Base Target" position="insideTopLeft" fill="#2563eb" fontSize={11} />
+              <Label value="Base Target" position="insideTopLeft" fill="#1e40af" fontSize={11} />
             </ReferenceLine>
 
             {/* Direct Target Label */}
             <ReferenceLine y={80} stroke="none">
-              <Label value="Direct Compliance Target" position="insideTopLeft" fill="#0ea5e9" fontSize={11} />
+              <Label value="Direct Compliance Target" position="insideTopLeft" fill="#2563eb" fontSize={11} />
             </ReferenceLine>
 
             {/* Annotation Boxes */}
-            <ReferenceLine x={2032} stroke="none">
+            <ReferenceLine x={2031} stroke="none">
               <Label
                 value="$380 / t CO₂eq (Tier 2: 2028-30)"
                 position="top"
@@ -250,12 +263,12 @@ export function GHGIntensityChart({ attainedGFI, baseTarget, directTarget }: GHG
                 className="text-[10px] font-mono bg-white/80"
               />
             </ReferenceLine>
-            <ReferenceLine x={2032} stroke="none">
+            <ReferenceLine x={2031} stroke="none">
               <Label
                 value="$100 / t CO₂eq (Tier 1: 2028-30)"
                 position="top"
                 fill="#0f172a"
-                offset={120}
+                offset={110}
                 className="text-[10px] font-mono"
               />
             </ReferenceLine>
