@@ -75,7 +75,7 @@ export function calculateEEDIFromEngines(
   // Note: User inputs MCR power. SFC should be at reference condition (75% MCR for main, 50% for aux).
   const mainLoadFactor = 0.75; // Main engines: 75% of MCR
   const auxLoadFactor = 0.50; // Auxiliary engines: 50% of MCR (NOT 0.75!)
-  
+
   let totalMainEmissions = 0;
   let totalAuxEmissions = 0;
 
@@ -111,28 +111,28 @@ export function calculateEEDIFromEngines(
   }
 
   const totalEmissionsPerHour = totalMainEmissions + totalAuxEmissions; // gCO₂/h
-  
+
   if (totalEmissionsPerHour <= 0) {
     throw new Error("Total emissions must be greater than 0. Please check engine inputs.");
   }
-  
+
   // Transport work: Capacity (tonnes) × Vref (knots = nautical miles/hour)
   // Result: tonne-nm/h
   const transportWorkPerHour = capacity * speed; // tonne-nm/h
-  
+
   if (transportWorkPerHour === 0) {
     throw new Error("Transport work (capacity × speed) cannot be zero");
   }
-  
+
   // EEDI formula: EEDI = Σ(CF × SFC × P_ref) / (Capacity × Vref)
   // Units: (gCO₂/h) / (tonne-nm/h) = gCO₂/(tonne-nm)
   // The result is already in the correct units (gCO₂ per tonne-nautical mile)
   const eedi = totalEmissionsPerHour / transportWorkPerHour;
-  
+
   if (!isFinite(eedi) || eedi <= 0) {
     throw new Error("Invalid EEDI calculation result");
   }
-  
+
   return eedi;
 }
 
@@ -150,12 +150,12 @@ export function calculateRequiredEEDI(shipType: string, capacity: number, year: 
 
   const ref = referencelines[shipType] || referencelines["Bulk Carrier"];
   const baseline = ref.a * Math.pow(capacity, -ref.c);
-  
+
   let reductionFactor = 0;
   if (year >= 2025) reductionFactor = 0.30;
   else if (year >= 2020) reductionFactor = 0.20;
   else if (year >= 2015) reductionFactor = 0.10;
-  
+
   return baseline * (1 - reductionFactor);
 }
 
@@ -204,7 +204,7 @@ export function calculateEEXIFromEngines(
   const mainLoadFactor = 0.75; // Main engines: 75% of available MCR
   const auxLoadFactor = 0.50; // Auxiliary engines: 50% of MCR
   const eplFactor = 0.83; // EPL reduces available MCR by 17% (typical: 0.80-0.85)
-  
+
   let totalMainEmissions = 0;
   let totalAuxEmissions = 0;
 
@@ -245,7 +245,7 @@ export function calculateEEXIFromEngines(
   }
 
   const totalEmissionsPerHour = totalMainEmissions + totalAuxEmissions; // gCO₂/h
-  
+
   if (totalEmissionsPerHour <= 0) {
     throw new Error("Total emissions must be greater than 0. Please check engine inputs.");
   }
@@ -253,7 +253,7 @@ export function calculateEEXIFromEngines(
   // Transport work: Capacity (tonnes) × Vref (knots = nautical miles/hour)
   // Result: tonne-nm/h
   const transportWorkPerHour = capacity * speed; // tonne-nm/h
-  
+
   if (transportWorkPerHour === 0) {
     throw new Error("Transport work (capacity × speed) cannot be zero");
   }
@@ -262,7 +262,7 @@ export function calculateEEXIFromEngines(
   // Units: (gCO₂/h) / (tonne-nm/h) = gCO₂/(tonne-nm)
   // The result is already in the correct units (gCO₂ per tonne-nautical mile)
   const eexi = totalEmissionsPerHour / transportWorkPerHour;
-  
+
   if (!isFinite(eexi) || eexi <= 0) {
     throw new Error("Invalid EEXI calculation result");
   }
@@ -330,7 +330,7 @@ export function calculateCII(
 
 export function getCIIRating(attainedCII: number, requiredCII: number): string {
   const ratio = attainedCII / requiredCII;
-  
+
   if (ratio <= 0.88) return "A";
   if (ratio <= 0.94) return "B";
   if (ratio <= 1.06) return "C";
@@ -349,8 +349,12 @@ export function calculateRequiredCII(shipType: string, capacity: number, year: n
 
   const baseline = baselines[shipType] || baselines["Bulk Carrier"];
   const baseCII = baseline.a * Math.pow(capacity, -baseline.c);
-  
+
   const reductionFactors: Record<number, number> = {
+    2019: 0.00,
+    2020: 0.01,
+    2021: 0.02,
+    2022: 0.03,
     2023: 0.05,
     2024: 0.07,
     2025: 0.09,
@@ -370,7 +374,7 @@ export function calculateRequiredCII(shipType: string, capacity: number, year: n
     2039: 0.37,
     2040: 0.39,
   };
-  
+
   // For years beyond 2040, use linear extrapolation or cap at 2040 value
   let reduction = reductionFactors[year];
   if (!reduction) {
@@ -387,7 +391,7 @@ export function calculateRequiredCII(shipType: string, capacity: number, year: n
       reduction = prevReduction + (nextReduction - prevReduction) * factor;
     }
   }
-  
+
   return baseCII * (1 - reduction);
 }
 
@@ -408,10 +412,10 @@ export function calculateFuelEUCompliance(
   // Units: ghgEmissions (gCO₂eq) / totalEnergy (MJ) = gCO₂eq/MJ
   // Note: ghgEmissions should be in grams, totalEnergy in MJ
   const intensity = ghgEmissions / totalEnergy;
-  
+
   // Baseline GHG intensity: 91.16 gCO₂eq/MJ (2020 reference)
   const baseline = 91.16;
-  
+
   // Reduction targets by year (as fraction of baseline)
   const reductionTargets: Record<number, number> = {
     2025: 0.02, 2026: 0.02,
@@ -422,12 +426,12 @@ export function calculateFuelEUCompliance(
     2045: 0.62, 2046: 0.68, 2047: 0.73, 2048: 0.77, 2049: 0.785,
     2050: 0.80,
   };
-  
+
   const reduction = reductionTargets[year] || 0.02;
   const limit = baseline * (1 - reduction);
-  
+
   const compliance = intensity <= limit;
-  
+
   // Calculate penalty for non-compliance
   // Penalty = (GHG Intensity Deficit × Total Energy × Penalty Rate)
   // Where:
@@ -440,11 +444,11 @@ export function calculateFuelEUCompliance(
   const deficit = Math.max(0, intensity - limit);
   const penaltyRate = 2400; // €/tonne CO₂eq (typical rate, may vary)
   const penalty = (deficit * totalEnergy * penaltyRate) / 1000000; // Convert g to tonnes
-  
+
   if (!isFinite(intensity) || intensity < 0) {
     throw new Error("Invalid GHG intensity calculation result");
   }
-  
+
   return { intensity, limit, penalty, compliance };
 }
 
@@ -460,18 +464,18 @@ export function calculateEUETS(
     2025: 0.70,
     2026: 1.00,
   };
-  
+
   const coverage = coverageRates[year] || 0.70;
-  
+
   const internationalEmissions = totalEmissions - intraEUEmissions - portEmissions;
-  const reportableEmissions = 
-    intraEUEmissions + 
-    portEmissions + 
+  const reportableEmissions =
+    intraEUEmissions +
+    portEmissions +
     (internationalEmissions * 0.5);
-  
+
   const allowancesNeeded = reportableEmissions * coverage;
   const cost = allowancesNeeded * carbonPrice;
-  
+
   return { allowancesNeeded, cost, coverage };
 }
 
@@ -492,9 +496,9 @@ export function calculateIMOGFI(
   compliance: 'surplus' | 'tier1' | 'tier2';
 } {
   const baseline2008 = 93.3;
-  
+
   const attainedGFI = (ghgEmissions / totalEnergyUsed) * 1000;
-  
+
   const reductionTargets: Record<number, { base: number; direct: number }> = {
     2028: { base: 0.04, direct: 0.17 },
     2029: { base: 0.06, direct: 0.21 },
@@ -510,21 +514,21 @@ export function calculateIMOGFI(
     2039: { base: 0.55, direct: 0.69 },
     2040: { base: 0.65, direct: 0.80 },
   };
-  
-  const targets = year >= 2040 
-    ? reductionTargets[2040] 
+
+  const targets = year >= 2040
+    ? reductionTargets[2040]
     : (reductionTargets[year] || reductionTargets[2028]);
   const baseTarget = baseline2008 * (1 - targets.base);
   const directTarget = baseline2008 * (1 - targets.direct);
-  
+
   const tier1Price = 100;
   const tier2Price = 380;
-  
+
   let tier1Deficit = 0;
   let tier2Deficit = 0;
   let surplus = 0;
   let compliance: 'surplus' | 'tier1' | 'tier2' = 'surplus';
-  
+
   if (attainedGFI <= directTarget) {
     surplus = ((directTarget - attainedGFI) * totalEnergyUsed) / 1000000;
     compliance = 'surplus';
@@ -536,11 +540,11 @@ export function calculateIMOGFI(
     tier1Deficit = ((baseTarget - directTarget) * totalEnergyUsed) / 1000000;
     compliance = 'tier2';
   }
-  
+
   const tier1Cost = tier1Deficit * tier1Price;
   const tier2Cost = tier2Deficit * tier2Price;
   const rewardCost = 0;
-  
+
   return {
     attainedGFI,
     baseTarget,
@@ -564,7 +568,7 @@ export function calculateShipbuildingCost(
   if (!isNewBuild) {
     return 0;
   }
-  
+
   const baseCostPerDWT: Record<string, number> = {
     "Bulk Carrier": 700,
     "Oil Tanker": 750,
@@ -577,13 +581,13 @@ export function calculateShipbuildingCost(
     "RoRo Cargo": 850,
     "RoRo Passenger": 1100,
   };
-  
+
   const costPerDWT = baseCostPerDWT[shipType] || 800;
   const baseCost = deadweight * costPerDWT;
-  
+
   const complexityFactor = grossTonnage / deadweight;
   const adjustment = complexityFactor > 1.5 ? 1.1 : 1.0;
-  
+
   return baseCost * adjustment;
 }
 
@@ -602,24 +606,24 @@ export function calculateFuelCost(
 } {
   const mainEngineSFOC = fuelType === "HFO" ? 175 : 185;
   const auxiliarySFOC = 220;
-  
+
   const mainEnginePowerAtSea = mainEnginePower * 0.75;
   const auxiliaryPowerAtSea = auxiliaryPower * 0.5;
   const auxiliaryPowerInPort = auxiliaryPower * 0.3;
-  
-  const mainEngineConsumption = 
+
+  const mainEngineConsumption =
     (mainEnginePowerAtSea * mainEngineSFOC * 24 * daysAtSea) / 1000000;
-  
-  const auxiliaryConsumptionAtSea = 
+
+  const auxiliaryConsumptionAtSea =
     (auxiliaryPowerAtSea * auxiliarySFOC * 24 * daysAtSea) / 1000000;
-  
-  const auxiliaryConsumptionInPort = 
+
+  const auxiliaryConsumptionInPort =
     (auxiliaryPowerInPort * auxiliarySFOC * 24 * daysInPort) / 1000000;
-  
+
   const auxiliaryConsumption = auxiliaryConsumptionAtSea + auxiliaryConsumptionInPort;
   const totalConsumption = mainEngineConsumption + auxiliaryConsumption;
   const totalCost = totalConsumption * fuelPrice;
-  
+
   return {
     mainEngineConsumption,
     auxiliaryConsumption,
@@ -673,7 +677,7 @@ export function optimizeParameters(
   const maxIterations = 100;
   let best = { ...current };
   let iterations = 0;
-  
+
   const parameterRanges: Record<keyof OptimizationParameters, { min: number; max: number; step: number }> = {
     annualFuelConsumption: { min: 1000, max: 20000, step: 50 },
     distanceTraveled: { min: 20000, max: 150000, step: 500 },
@@ -684,31 +688,31 @@ export function optimizeParameters(
     fuelType: { min: 0, max: 0, step: 0 },
     fuelPrice: { min: 400, max: 800, step: 5 },
   };
-  
+
   function calculateEnergyAndEmissions(params: OptimizationParameters): { energy: number; emissions: number } {
     const hoursAtSea = params.daysAtSea * 24;
     const hoursInPort = params.daysInPort * 24;
-    
-    const totalEnergyUsed = 
-      (params.mainEnginePower * 0.75 * hoursAtSea + 
-       params.auxiliaryPower * 0.5 * hoursAtSea +
-       params.auxiliaryPower * 0.3 * hoursInPort) * 3.6;
-    
-    const fuelConsumption = 
+
+    const totalEnergyUsed =
+      (params.mainEnginePower * 0.75 * hoursAtSea +
+        params.auxiliaryPower * 0.5 * hoursAtSea +
+        params.auxiliaryPower * 0.3 * hoursInPort) * 3.6;
+
+    const fuelConsumption =
       (params.mainEnginePower * 0.75 * hoursAtSea * (params.fuelType === "HFO" ? 175 : 185) +
-       params.auxiliaryPower * 0.5 * hoursAtSea * 220 +
-       params.auxiliaryPower * 0.3 * hoursInPort * 220) / 1000000;
-    
-    const cfFactor = params.fuelType === "HFO" ? 3.114 : 
-                     params.fuelType === "LNG" ? 2.750 :
-                     params.fuelType === "Methanol" ? 1.375 :
-                     params.fuelType === "Ammonia" ? 0 : 3.206;
-    
+        params.auxiliaryPower * 0.5 * hoursAtSea * 220 +
+        params.auxiliaryPower * 0.3 * hoursInPort * 220) / 1000000;
+
+    const cfFactor = params.fuelType === "HFO" ? 3.114 :
+      params.fuelType === "LNG" ? 2.750 :
+        params.fuelType === "Methanol" ? 1.375 :
+          params.fuelType === "Ammonia" ? 0 : 3.206;
+
     const ghgEmissions = fuelConsumption * cfFactor * 1000000000;
-    
+
     return { energy: totalEnergyUsed, emissions: ghgEmissions };
   }
-  
+
   function evaluateFitness(params: OptimizationParameters): number {
     if (target.type === 'cii_rating') {
       const cii = calculateCII(
@@ -747,27 +751,27 @@ export function optimizeParameters(
     }
     return 0;
   }
-  
+
   let bestFitness = evaluateFitness(best);
-  
+
   for (iterations = 0; iterations < maxIterations; iterations++) {
     let improved = false;
-    
+
     for (const param in best) {
       if (constraints.fixedParams.has(param as keyof OptimizationParameters)) continue;
       if (param === 'fuelType') continue;
-      
+
       const range = parameterRanges[param as keyof OptimizationParameters];
       if (!range || range.step === 0) continue;
-      
+
       const currentValue = best[param as keyof OptimizationParameters] as number;
-      
+
       const testIncrease = { ...best, [param]: Math.min(currentValue + range.step, range.max) };
       const testDecrease = { ...best, [param]: Math.max(currentValue - range.step, range.min) };
-      
+
       const increaseFitness = evaluateFitness(testIncrease);
       const decreaseFitness = evaluateFitness(testDecrease);
-      
+
       if (increaseFitness > bestFitness) {
         best = testIncrease;
         bestFitness = increaseFitness;
@@ -778,10 +782,10 @@ export function optimizeParameters(
         improved = true;
       }
     }
-    
+
     if (!improved) break;
   }
-  
+
   const fuelCost = calculateFuelCost(
     best.mainEnginePower,
     best.auxiliaryPower,
@@ -790,7 +794,7 @@ export function optimizeParameters(
     best.fuelType,
     best.fuelPrice
   );
-  
+
   const cii = calculateCII(
     best.annualFuelConsumption,
     best.distanceTraveled,
@@ -799,7 +803,7 @@ export function optimizeParameters(
   );
   const required = calculateRequiredCII(constraints.shipType, constraints.shipCapacity, constraints.year);
   const rating = getCIIRating(cii, required);
-  
+
   return {
     success: iterations < maxIterations,
     parameters: best,

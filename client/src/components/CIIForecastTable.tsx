@@ -1,101 +1,96 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { calculateRequiredCII, getCIIRating } from "@/lib/calculations";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 
 interface CIIForecastTableProps {
-  vesselName?: string;
-  shipType: string;
-  capacity: number;
-  attainedCII: number;
-  startYear: number;
-  endYear: number;
-  currentYear?: number; // Year of actual data (before this is forecast)
+  data: Array<{
+    year: number;
+    required: number;
+    attained?: number;
+    attainedRating?: string;
+    adjusted?: number;
+    adjustedRating?: string;
+  }>;
 }
 
-export function CIIForecastTable({ 
-  vesselName, 
-  shipType, 
-  capacity, 
-  attainedCII, 
-  startYear, 
-  endYear,
-  currentYear 
-}: CIIForecastTableProps) {
-  // Bright colors for actual data (if currentYear is set)
-  const ratingColorsBright = {
-    A: "bg-green-500 text-white",
-    B: "bg-blue-500 text-white",
-    C: "bg-yellow-400 text-gray-900",
-    D: "bg-orange-500 text-white",
-    E: "bg-red-500 text-white",
+export function CIIForecastTable({ data }: CIIForecastTableProps) {
+  const getRatingColor = (rating?: string) => {
+    switch (rating) {
+      case 'A': return 'bg-green-500 text-white';
+      case 'B': return 'bg-green-300 text-black';
+      case 'C': return 'bg-yellow-300 text-black';
+      case 'D': return 'bg-orange-500 text-white';
+      case 'E': return 'bg-red-500 text-white';
+      default: return 'bg-gray-200';
+    }
   };
-
-  // Dull colors for forecasted data
-  const ratingColorsDull = {
-    A: "bg-green-200 dark:bg-green-800/40 text-green-800 dark:text-green-200",
-    B: "bg-blue-200 dark:bg-blue-800/40 text-blue-800 dark:text-blue-200",
-    C: "bg-yellow-200 dark:bg-yellow-800/40 text-yellow-800 dark:text-yellow-200",
-    D: "bg-orange-200 dark:bg-orange-800/40 text-orange-800 dark:text-orange-200",
-    E: "bg-red-200 dark:bg-red-800/40 text-red-800 dark:text-red-200",
-  };
-
-  const forecastData = [];
-  for (let year = startYear; year <= endYear; year++) {
-    const requiredCII = calculateRequiredCII(shipType, capacity, year);
-    const rating = getCIIRating(attainedCII, requiredCII) as "A" | "B" | "C" | "D" | "E";
-    const isForecast = currentYear ? year > currentYear : true;
-    forecastData.push({ year, rating, isForecast });
-  }
-
-  const years = forecastData.map(d => d.year);
-  const displayName = vesselName || `${shipType} (${capacity.toLocaleString()} DWT)`;
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="text-lg">CII Rating Forecast</CardTitle>
-        <p className="text-sm text-muted-foreground">
-          Forecasted ratings in dull colors. Assumes constant attained CII of {attainedCII.toFixed(2)} gCO₂/tonne-nm
-        </p>
-      </CardHeader>
-      <CardContent>
-        <div className="overflow-x-auto -mx-6 px-6">
-          <div className="inline-block min-w-full align-middle">
-            <table className="w-full border-collapse">
-              <thead>
-                <tr className="border-b">
-                  <th className="sticky left-0 z-20 bg-background px-4 py-3 text-left font-medium text-muted-foreground min-w-[150px] border-r">
-                    Vessel name
-                  </th>
-                  {years.map((year) => (
-                    <th key={year} className="px-3 py-3 text-center font-medium text-muted-foreground min-w-[60px] whitespace-nowrap">
-                      {year}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                <tr className="border-b">
-                  <td className="sticky left-0 z-10 bg-background px-4 py-3 font-medium border-r">
-                    {displayName}
-                  </td>
-                  {forecastData.map((data) => {
-                    const colors = data.isForecast ? ratingColorsDull : ratingColorsBright;
-                    return (
-                      <td 
-                        key={data.year} 
-                        className={`px-3 py-3 text-center font-bold text-sm whitespace-nowrap ${colors[data.rating]}`}
-                      >
-                        {data.rating}
-                      </td>
-                    );
-                  })}
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </CardContent>
-    </Card>
+    <div className="border rounded-lg overflow-hidden">
+      <Table>
+        <TableHeader className="bg-blue-50">
+          <TableRow>
+            <TableHead>Year</TableHead>
+            {data.map(d => (
+              <TableHead key={d.year} className="text-center text-xs px-1">{d.year}</TableHead>
+            ))}
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {/* Required CII Row */}
+          <TableRow>
+            <TableCell className="font-semibold text-xs whitespace-nowrap bg-gray-50">Required CII<br />(gCO2/t.nm)</TableCell>
+            {data.map(d => (
+              <TableCell key={d.year} className="text-center text-xs">{d.required.toFixed(3)}</TableCell>
+            ))}
+          </TableRow>
+
+          {/* Attained CII Row */}
+          <TableRow>
+            <TableCell className="font-semibold text-xs whitespace-nowrap">Attained CII<br />(gCO2/t.nm)</TableCell>
+            {data.map(d => (
+              <TableCell key={d.year} className="text-center text-xs">
+                {d.attained ? d.attained.toFixed(3) : '-'}
+              </TableCell>
+            ))}
+          </TableRow>
+
+          {/* Attained Rating Row */}
+          <TableRow>
+            <TableCell className="font-semibold text-xs whitespace-nowrap bg-gray-50">Attained<br />Rating</TableCell>
+            {data.map(d => (
+              <TableCell key={d.year} className={`text-center text-xs font-bold ${d.attainedRating ? getRatingColor(d.attainedRating) : ''}`}>
+                {d.attainedRating || '-'}
+              </TableCell>
+            ))}
+          </TableRow>
+
+          {/* Adjusted CII Row (Placeholder if needed) */}
+          {/* 
+           <TableRow>
+            <TableCell className="font-semibold text-xs whitespace-nowrap">Adjusted CII<br/>(gCO2/t.nm)</TableCell>
+            {data.map(d => (
+              <TableCell key={d.year} className="text-center text-xs">
+                {d.adjusted ? d.adjusted.toFixed(3) : '-'}
+              </TableCell>
+            ))}
+          </TableRow>
+          <TableRow>
+            <TableCell className="font-semibold text-xs whitespace-nowrap bg-gray-50">Adjusted<br/>Rating</TableCell>
+            {data.map(d => (
+              <TableCell key={d.year} className={`text-center text-xs font-bold ${d.adjustedRating ? getRatingColor(d.adjustedRating) : ''}`}>
+                 {d.adjustedRating || '-'}
+              </TableCell>
+            ))}
+          </TableRow> 
+          */}
+        </TableBody>
+      </Table>
+    </div>
   );
 }
-
