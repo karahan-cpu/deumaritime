@@ -5,20 +5,16 @@ import { Trash2, Edit, Plus } from "lucide-react";
 import type { ShipInfo } from "@shared/schema";
 
 interface FleetMetrics {
-  ciiScore2022?: number;
-  ciiRating2022?: string;
-  bestSister?: string;
-  eexiOrEedi?: number;
-  eeoi?: number;
-  sumReduction2026?: number;
-  ciiValue2026?: number;
-  ciiRating2026?: string;
-  sumReductionEOL?: number;
-  ciiRatingEOL?: string;
-  endOfLifetime?: number;
-  capex?: number;
-  opex?: number;
-  balanceEOL?: number;
+  shipbuildingCosts?: number;
+  fuelCosts?: number;
+  eexiCosts?: number;
+  imoGFITier1Costs?: number;
+  imoGFITier2Costs?: number;
+  imoGFIRewardCosts?: number;
+  ciiCosts?: number;
+  fuelEUMaritimeCosts?: number;
+  euETSCosts?: number;
+  totalCosts?: number;
 }
 
 export interface Vessel extends ShipInfo, Partial<FleetMetrics> {
@@ -37,14 +33,9 @@ function formatNumber(value?: number, options?: Intl.NumberFormatOptions) {
   return value.toLocaleString(undefined, options);
 }
 
-function formatPercentage(value?: number) {
+function formatCurrency(value?: number) {
   if (value === undefined || Number.isNaN(value)) return "—";
-  return `${value.toFixed(1)}%`;
-}
-
-function formatRating(value?: string) {
-  if (!value) return "—";
-  return value.toUpperCase();
+  return value.toLocaleString(undefined, { maximumFractionDigits: 0 });
 }
 
 export function FleetSimulator({ vessels, onDeleteVessel, onEditVessel, onAddVessel }: FleetSimulatorProps) {
@@ -53,8 +44,8 @@ export function FleetSimulator({ vessels, onDeleteVessel, onEditVessel, onAddVes
       <CardHeader>
         <div className="flex items-center justify-between">
           <div>
-            <CardTitle>Fleet Simulator</CardTitle>
-            <CardDescription>Manage your fleet of vessels</CardDescription>
+            <CardTitle>Fleet Cost Summary</CardTitle>
+            <CardDescription>Overview of compliance costs across the fleet</CardDescription>
           </div>
           <Button onClick={onAddVessel} size="sm">
             <Plus className="h-4 w-4 mr-2" />
@@ -65,8 +56,8 @@ export function FleetSimulator({ vessels, onDeleteVessel, onEditVessel, onAddVes
       <CardContent>
         {vessels.length === 0 ? (
           <div className="text-center py-12 text-muted-foreground">
-            <p className="text-lg font-medium mb-2">No vessels in fleet</p>
-            <p className="text-sm mb-4">Add your first vessel to get started</p>
+            <p className="text-lg font-medium mb-2">No vessels added</p>
+            <p className="text-sm mb-4">Calculate results and add a vessel to see the cost summary</p>
             <Button onClick={onAddVessel} variant="outline">
               <Plus className="h-4 w-4 mr-2" />
               Add Vessel
@@ -77,22 +68,17 @@ export function FleetSimulator({ vessels, onDeleteVessel, onEditVessel, onAddVes
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Vessel name</TableHead>
-                  <TableHead className="text-right">CII score 2022</TableHead>
-                  <TableHead className="text-center">CII rating 2022</TableHead>
-                  <TableHead>Best Sister</TableHead>
-                  <TableHead className="text-right">EEXI / EEDI</TableHead>
-                  <TableHead className="text-right">EEOI</TableHead>
-                  <TableHead className="text-right">Sum reduction 2026 (%)</TableHead>
-                  <TableHead className="text-right">CII value 2026</TableHead>
-                  <TableHead className="text-center">CII rating 2026</TableHead>
-                  <TableHead className="text-right">Sum reduction EOL (%)</TableHead>
-                  <TableHead className="text-center">CII rating EOL</TableHead>
-                  <TableHead className="text-right">End of lifetime</TableHead>
-                  <TableHead className="text-right">CAPEX</TableHead>
-                  <TableHead className="text-right">OPEX</TableHead>
-                  <TableHead className="text-right">CAPEX + OPEX</TableHead>
-                  <TableHead className="text-right">Balance EOL</TableHead>
+                  <TableHead>Vessel Name</TableHead>
+                  <TableHead className="text-right">Shipbuilding</TableHead>
+                  <TableHead className="text-right">Fuel</TableHead>
+                  <TableHead className="text-right">EEXI Compliance</TableHead>
+                  <TableHead className="text-right">IMO GFI (Tier 1)</TableHead>
+                  <TableHead className="text-right">IMO GFI (Tier 2)</TableHead>
+                  <TableHead className="text-right">IMO GFI (Reward)</TableHead>
+                  <TableHead className="text-right">CII Costs</TableHead>
+                  <TableHead className="text-right">FuelEU Penalties</TableHead>
+                  <TableHead className="text-right">EU ETS</TableHead>
+                  <TableHead className="text-right font-bold">Total Costs</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
@@ -102,64 +88,41 @@ export function FleetSimulator({ vessels, onDeleteVessel, onEditVessel, onAddVes
                     <TableCell className="font-medium">
                       <div className="flex flex-col">
                         <span>{vessel.shipName}</span>
-                        <span className="text-xs text-muted-foreground">{vessel.shipType}</span>
+                        <span className="text-xs text-muted-foreground">{vessel.shipType} ({vessel.yearBuilt})</span>
                       </div>
                     </TableCell>
+
                     <TableCell className="text-right font-mono">
-                      {formatNumber(vessel.ciiScore2022, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                    </TableCell>
-                    <TableCell className="text-center">
-                      {formatRating(vessel.ciiRating2022)}
-                    </TableCell>
-                    <TableCell>{vessel.bestSister || "—"}</TableCell>
-                    <TableCell className="text-right font-mono">
-                      {formatNumber(vessel.eexiOrEedi, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      €{formatCurrency(vessel.shipbuildingCosts)}
                     </TableCell>
                     <TableCell className="text-right font-mono">
-                      {formatNumber(vessel.eeoi, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      €{formatCurrency(vessel.fuelCosts)}
                     </TableCell>
                     <TableCell className="text-right font-mono">
-                      {formatPercentage(vessel.sumReduction2026)}
+                      €{formatCurrency(vessel.eexiCosts)}
+                    </TableCell>
+                    <TableCell className="text-right font-mono text-amber-600">
+                      {vessel.imoGFITier1Costs && vessel.imoGFITier1Costs > 0 ? `€${formatCurrency(vessel.imoGFITier1Costs)}` : "—"}
+                    </TableCell>
+                    <TableCell className="text-right font-mono text-destructive">
+                      {vessel.imoGFITier2Costs && vessel.imoGFITier2Costs > 0 ? `€${formatCurrency(vessel.imoGFITier2Costs)}` : "—"}
+                    </TableCell>
+                    <TableCell className="text-right font-mono text-green-600">
+                      {vessel.imoGFIRewardCosts && vessel.imoGFIRewardCosts > 0 ? `€${formatCurrency(vessel.imoGFIRewardCosts)}` : "—"}
                     </TableCell>
                     <TableCell className="text-right font-mono">
-                      {formatNumber(vessel.ciiValue2026, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      €{formatCurrency(vessel.ciiCosts)}
                     </TableCell>
-                    <TableCell className="text-center">
-                      {formatRating(vessel.ciiRating2026)}
+                    <TableCell className="text-right font-mono text-destructive">
+                      {vessel.fuelEUMaritimeCosts && vessel.fuelEUMaritimeCosts > 0 ? `€${formatCurrency(vessel.fuelEUMaritimeCosts)}` : "—"}
                     </TableCell>
-                    <TableCell className="text-right font-mono">
-                      {formatPercentage(vessel.sumReductionEOL)}
+                    <TableCell className="text-right font-mono text-destructive">
+                      {vessel.euETSCosts && vessel.euETSCosts > 0 ? `€${formatCurrency(vessel.euETSCosts)}` : "—"}
                     </TableCell>
-                    <TableCell className="text-center">
-                      <div className="flex flex-col items-center">
-                        <span className="font-semibold">
-                          {formatRating(vessel.ciiRatingEOL)}
-                        </span>
-                        <span className="text-[10px] uppercase tracking-wide text-muted-foreground">
-                          {vessel.endOfLifetime ?? 2040}
-                        </span>
-                      </div>
+                    <TableCell className="text-right font-mono font-bold">
+                      €{formatCurrency(vessel.totalCosts)}
                     </TableCell>
-                    <TableCell className="text-right font-mono">
-                      {formatNumber(vessel.endOfLifetime)}
-                    </TableCell>
-                    <TableCell className="text-right font-mono">
-                      {formatNumber(vessel.capex, { style: "currency", currency: "USD", maximumFractionDigits: 0 })}
-                    </TableCell>
-                    <TableCell className="text-right font-mono">
-                      {formatNumber(vessel.opex, { style: "currency", currency: "USD", maximumFractionDigits: 0 })}
-                    </TableCell>
-                    <TableCell className="text-right font-mono">
-                      {formatNumber(
-                        vessel.capex !== undefined && vessel.opex !== undefined
-                          ? vessel.capex + vessel.opex
-                          : undefined,
-                        { style: "currency", currency: "USD", maximumFractionDigits: 0 }
-                      )}
-                    </TableCell>
-                    <TableCell className="text-right font-mono">
-                      {formatNumber(vessel.balanceEOL, { style: "currency", currency: "USD", maximumFractionDigits: 0 })}
-                    </TableCell>
+
                     <TableCell className="text-right">
                       <div className="flex items-center justify-end gap-2">
                         <Button
@@ -167,6 +130,7 @@ export function FleetSimulator({ vessels, onDeleteVessel, onEditVessel, onAddVes
                           size="icon"
                           onClick={() => onEditVessel(vessel)}
                           className="h-8 w-8"
+                          title="Load Vessel Data"
                         >
                           <Edit className="h-4 w-4" />
                         </Button>
@@ -175,6 +139,7 @@ export function FleetSimulator({ vessels, onDeleteVessel, onEditVessel, onAddVes
                           size="icon"
                           onClick={() => onDeleteVessel(vessel.id)}
                           className="h-8 w-8 text-destructive hover:text-destructive"
+                          title="Delete Vessel"
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>

@@ -10,7 +10,8 @@ interface CostBreakdown {
   imoGFIRewardCosts: number;
   ciiCosts: number;
   fuelEUMaritimeCosts: number;
-  otherCosts: number;
+  euETSCosts: number;
+  eexiCosts: number;
 }
 
 interface CostSummaryCardProps {
@@ -20,13 +21,13 @@ interface CostSummaryCardProps {
   totalFuelEnergy?: number;
 }
 
-export function CostSummaryCard({ 
-  costs, 
+export function CostSummaryCard({
+  costs,
   shipName,
   complianceYear = 2025,
   totalFuelEnergy = 0
 }: CostSummaryCardProps) {
-  const totalCosts = 
+  const totalCosts =
     costs.shipbuildingCosts +
     costs.fuelCosts +
     costs.imoGFITier1Costs +
@@ -34,14 +35,17 @@ export function CostSummaryCard({
     costs.imoGFIRewardCosts +
     costs.ciiCosts +
     costs.fuelEUMaritimeCosts +
-    costs.otherCosts;
+    costs.euETSCosts +
+    costs.eexiCosts;
 
-  const regulatoryCosts = 
+  const regulatoryCosts =
     costs.imoGFITier1Costs +
     costs.imoGFITier2Costs +
     costs.imoGFIRewardCosts +
     costs.ciiCosts +
-    costs.fuelEUMaritimeCosts;
+    costs.fuelEUMaritimeCosts +
+    costs.euETSCosts +
+    costs.eexiCosts;
 
   const totalCostsPerHFOeq = totalFuelEnergy > 0 ? totalCosts / totalFuelEnergy : 0;
   const regulatoryCostsPerHFOeq = totalFuelEnergy > 0 ? regulatoryCosts / totalFuelEnergy : 0;
@@ -110,6 +114,15 @@ export function CostSummaryCard({
                 </td>
               </tr>
 
+              <tr className="border-b hover-elevate" data-testid="cost-row-eexi">
+                <td className="py-2.5 px-3 font-medium">
+                  EEDI / EEXI compliance costs
+                </td>
+                <td className="py-2.5 px-3 text-right font-mono">
+                  {formatCurrency(costs.eexiCosts)}
+                </td>
+              </tr>
+
               <tr className={`border-b hover-elevate ${costs.imoGFITier1Costs > 0 ? 'bg-amber-50/50 dark:bg-amber-950/20' : ''}`} data-testid="cost-row-gfi-tier1">
                 <td className="py-2.5 px-3 font-medium">
                   IMO GFI (Tier 1) costs
@@ -158,12 +171,13 @@ export function CostSummaryCard({
                 </td>
               </tr>
 
-              <tr className="border-b hover-elevate" data-testid="cost-row-other">
+              <tr className={`border-b hover-elevate ${costs.euETSCosts > 0 ? 'bg-destructive/5' : ''}`} data-testid="cost-row-euets">
                 <td className="py-2.5 px-3 font-medium">
-                  Other costs
+                  EU ETS costs
                 </td>
-                <td className="py-2.5 px-3 text-right font-mono">
-                  {formatCurrency(costs.otherCosts)}
+                <td className={`py-2.5 px-3 text-right font-mono font-semibold ${costs.euETSCosts > 0 ? 'text-destructive' : ''}`}>
+                  {costs.euETSCosts > 0 && '€'}
+                  {formatCurrency(costs.euETSCosts)}
                 </td>
               </tr>
 

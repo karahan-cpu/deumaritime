@@ -77,22 +77,30 @@ export default function Calculator() {
   };
 
   const handleAddToFleet = (data: ShipInfo) => {
-    const attainedCII = ciiResult?.attained;
-    let ciiRatingEOL: string | undefined;
-
-    if (attainedCII && data.deadweight > 0) {
-      try {
-        const required2040 = calculateRequiredCII(data.shipType, data.deadweight, 2040);
-        ciiRatingEOL = getCIIRating(attainedCII, required2040);
-      } catch (error) {
-        console.error("Failed to calculate CII rating for 2040:", error);
-      }
-    }
+    const totalCosts =
+      shipbuildingCost +
+      (fuelCostResult?.totalCost || 0) +
+      0 + // eexiCosts
+      (imoGFIResult?.tier1Cost || 0) +
+      (imoGFIResult?.tier2Cost || 0) +
+      (imoGFIResult?.rewardCost || 0) +
+      0 + // ciiCosts
+      (fuelEUResult?.penalty || 0) +
+      (euETSResult?.cost || 0);
 
     const newVessel: Vessel = {
       ...data,
       id: nanoid(),
-      ciiRatingEOL,
+      shipbuildingCosts: shipbuildingCost,
+      fuelCosts: fuelCostResult?.totalCost || 0,
+      eexiCosts: 0,
+      imoGFITier1Costs: imoGFIResult?.tier1Cost || 0,
+      imoGFITier2Costs: imoGFIResult?.tier2Cost || 0,
+      imoGFIRewardCosts: imoGFIResult?.rewardCost || 0,
+      ciiCosts: 0,
+      fuelEUMaritimeCosts: fuelEUResult?.penalty || 0,
+      euETSCosts: euETSResult?.cost || 0,
+      totalCosts: totalCosts
     };
     setFleet([...fleet, newVessel]);
     setShipInfo(data);
@@ -481,7 +489,8 @@ export default function Calculator() {
                       imoGFIRewardCosts: imoGFIResult ? imoGFIResult.rewardCost : 0,
                       ciiCosts: 0,
                       fuelEUMaritimeCosts: fuelEUResult ? fuelEUResult.penalty : 0,
-                      otherCosts: euETSResult ? euETSResult.cost : 0,
+                      euETSCosts: euETSResult ? euETSResult.cost : 0,
+                      eexiCosts: 0,
                     }}
                   />
                 )}

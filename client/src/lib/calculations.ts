@@ -14,6 +14,10 @@ const LHV_MJ_PER_KG: Record<string, number> = {
   Methanol: 19.9,
   Ammonia: 18.6,
   LPG: 46.0,
+  B100: 37.0,
+  B50: 39.9,
+  B30: 41.0,
+  B24: 41.3,
 };
 
 export function lhvForFuel(fuelType: string): number {
@@ -703,10 +707,7 @@ export function optimizeParameters(
         params.auxiliaryPower * 0.5 * hoursAtSea * 220 +
         params.auxiliaryPower * 0.3 * hoursInPort * 220) / 1000000;
 
-    const cfFactor = params.fuelType === "HFO" ? 3.114 :
-      params.fuelType === "LNG" ? 2.750 :
-        params.fuelType === "Methanol" ? 1.375 :
-          params.fuelType === "Ammonia" ? 0 : 3.206;
+    const cfFactor = getCO2Factor(params.fuelType);
 
     const ghgEmissions = fuelConsumption * cfFactor * 1000000000;
 

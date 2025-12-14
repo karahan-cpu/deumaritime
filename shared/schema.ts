@@ -21,6 +21,10 @@ export const fuelTypes = [
   { value: "Methanol", label: "Methanol", cf: 1.375 },
   { value: "Ammonia", label: "Ammonia", cf: 0 },
   { value: "LPG", label: "Liquefied Petroleum Gas (LPG)", cf: 3.000 },
+  { value: "B100", label: "Biodiesel (B100)", cf: 0 },
+  { value: "B50", label: "Biodiesel Blend (B50)", cf: 1.603 },
+  { value: "B30", label: "Biodiesel Blend (B30)", cf: 2.244 },
+  { value: "B24", label: "Biodiesel Blend (B24)", cf: 2.437 },
 ] as const;
 
 export const shipInfoSchema = z.object({
@@ -139,14 +143,14 @@ export const fuelCostInputSchema = z.object({
 export const fleetVesselSchema = z.object({
   id: z.string(),
   vesselName: z.string().min(1, "Vessel name is required"),
-  
+
   // Ship Info
   type: z.enum(shipTypes).optional(),
   dwt: z.number().positive("DWT must be positive").optional(),
   grossTonnage: z.number().positive("Gross tonnage must be positive").optional(),
   buildYear: z.number().min(1900).max(2030).optional(),
   isNewBuild: z.boolean().optional(),
-  
+
   // Operational Parameters
   annualFuelConsumption: z.number().positive().optional(),
   distanceTraveled: z.number().positive().optional(),
@@ -162,7 +166,7 @@ export const fleetVesselSchema = z.object({
   capacity: z.number().positive().optional(),
   hasEPL: z.boolean().optional(),
   year: z.number().min(2023).max(2050).optional(),
-  
+
   // Calculated Results (computed automatically)
   eexi: z.number().optional(),
   ciiRating: z.enum(["A", "B", "C", "D", "E"]).optional(),

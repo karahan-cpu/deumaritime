@@ -2,11 +2,11 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { fuelEUInputSchema, type FuelEUInput } from "@shared/schema";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { LockableInput } from "@/components/ui/lockable-input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Euro } from "lucide-react";
+import { Euro, Zap } from "lucide-react";
 import { useMemo, useState } from "react";
 import { calculateFuelEUCompliance, sumEnergyAndEmissions } from "@/lib/calculations";
 import { ComplianceBadge } from "./ComplianceBadge";
@@ -23,6 +23,7 @@ export function FuelEUCalculator({ onResultCalculated }: FuelEUCalculatorProps =
     penalty: number;
     compliance: boolean;
   } | null>(null);
+  const [recommendation, setRecommendation] = useState<{ message: string, impact: string } | null>(null);
 
   const form = useForm<FuelEUInput>({
     resolver: zodResolver(fuelEUInputSchema),
@@ -38,6 +39,13 @@ export function FuelEUCalculator({ onResultCalculated }: FuelEUCalculatorProps =
 
   const fuelRows = form.watch("fuelRows") as unknown as FuelRow[];
 
+  // Watch for inputs
+  const totalEnergyUsed = form.watch("totalEnergyUsed");
+  const ghgEmissions = form.watch("ghgEmissions");
+  const euPortCalls = form.watch("euPortCalls");
+  const intraEUVoyages = form.watch("intraEUVoyages");
+  const year = form.watch("year");
+
   const derived = useMemo(() => {
     if (!fuelRows || fuelRows.length === 0) return null;
     const { totalEnergyMJ, ghgKg } = sumEnergyAndEmissions(fuelRows);
@@ -47,6 +55,7 @@ export function FuelEUCalculator({ onResultCalculated }: FuelEUCalculatorProps =
   const handleCalculate = (data: FuelEUInput) => {
     const totalEnergy = derived?.totalEnergyUsed || data.totalEnergyUsed;
     const ghg = derived?.ghgEmissions || data.ghgEmissions;
+    setRecommendation(null);
 
     // Validate inputs
     if (!totalEnergy || totalEnergy <= 0) {
@@ -68,6 +77,20 @@ export function FuelEUCalculator({ onResultCalculated }: FuelEUCalculatorProps =
       console.error("FuelEU calculation error:", err);
       form.setError("root", { message: errorMessage });
     }
+  };
+
+  const handleOptimize = () => {
+    if (!result || result.compliance) return;
+
+    // Simple heuristic recommendation
+    const currentIntensity = result.intensity;
+    const target = result.limit;
+    const reductionNeeded = ((currentIntensity - target) / currentIntensity) * 100;
+
+    setRecommendation({
+      message: `Your GHG intensity is ${currentIntensity.toFixed(2)} gCO₂eq/MJ, which exceeds the limit of ${target.toFixed(2)}. You need to reduce intensity by ${reductionNeeded.toFixed(1)}%. Consider switching to lower-carbon fuels like Bio-LNG or Methanol, or using On-shore Power Supply (OPS) during port calls.`,
+      impact: "high"
+    });
   };
 
   return (
@@ -112,62 +135,62 @@ export function FuelEUCalculator({ onResultCalculated }: FuelEUCalculatorProps =
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-2">
                 <Label htmlFor="totalEnergyUsed">Total Energy Used (MJ)</Label>
-                <Input
+                <LockableInput
                   id="totalEnergyUsed"
                   type="number"
                   step="0.01"
                   {...form.register("totalEnergyUsed", { valueAsNumber: true })}
+                  value={totalEnergyUsed || ""}
                   placeholder="e.g., 750000000"
-                  data-testid="input-total-energy"
                   onFocus={(e) => e.target.select()}
                 />
               </div>
 
               <div className="space-y-2">
                 <Label htmlFor="ghgEmissions">Total GHG Emissions (gCO₂eq)</Label>
-                <Input
+                <LockableInput
                   id="ghgEmissions"
                   type="number"
                   step="0.01"
                   {...form.register("ghgEmissions", { valueAsNumber: true })}
+                  value={ghgEmissions || ""}
                   placeholder="e.g., 68500000000"
-                  data-testid="input-ghg-emissions"
                   onFocus={(e) => e.target.select()}
                 />
               </div>
 
               <div className="space-y-2">
                 <Label htmlFor="euPortCalls">EU Port Calls</Label>
-                <Input
+                <LockableInput
                   id="euPortCalls"
                   type="number"
                   {...form.register("euPortCalls", { valueAsNumber: true })}
+                  value={euPortCalls || ""}
                   placeholder="e.g., 45"
-                  data-testid="input-eu-port-calls"
                   onFocus={(e) => e.target.select()}
                 />
               </div>
 
               <div className="space-y-2">
                 <Label htmlFor="intraEUVoyages">Intra-EU Voyages</Label>
-                <Input
+                <LockableInput
                   id="intraEUVoyages"
                   type="number"
                   {...form.register("intraEUVoyages", { valueAsNumber: true })}
+                  value={intraEUVoyages || ""}
                   placeholder="e.g., 12"
-                  data-testid="input-intra-eu-voyages"
                   onFocus={(e) => e.target.select()}
                 />
               </div>
 
               <div className="space-y-2">
                 <Label htmlFor="year">Compliance Year</Label>
-                <Input
+                <LockableInput
                   id="year"
                   type="number"
                   {...form.register("year", { valueAsNumber: true })}
+                  value={year || 2025}
                   placeholder="e.g., 2025"
-                  data-testid="input-fueleu-year"
                   onFocus={(e) => e.target.select()}
                 />
               </div>
@@ -179,17 +202,30 @@ export function FuelEUCalculator({ onResultCalculated }: FuelEUCalculatorProps =
               </div>
             )}
 
-            <Button
-              type="submit"
-              className="w-full"
-              data-testid="button-calculate-fueleu"
-              disabled={
-                (!derived && (!form.watch("totalEnergyUsed") || form.watch("totalEnergyUsed") <= 0)) ||
-                (!derived && (!form.watch("ghgEmissions") || form.watch("ghgEmissions") < 0))
-              }
-            >
-              Calculate FuelEU Compliance
-            </Button>
+            <div className="flex gap-4">
+              <Button
+                type="submit"
+                className="flex-1"
+                data-testid="button-calculate-fueleu"
+                disabled={
+                  (!derived && (!form.watch("totalEnergyUsed") || form.watch("totalEnergyUsed") <= 0)) ||
+                  (!derived && (!form.watch("ghgEmissions") || form.watch("ghgEmissions") < 0))
+                }
+              >
+                Calculate FuelEU Compliance
+              </Button>
+              {result && !result.compliance && (
+                <Button
+                  type="button"
+                  variant="secondary"
+                  className="flex-1"
+                  onClick={handleOptimize}
+                >
+                  <Zap className="mr-2 h-4 w-4" />
+                  Fuel Recommendations
+                </Button>
+              )}
+            </div>
           </form>
         </CardContent>
       </Card>
@@ -200,7 +236,7 @@ export function FuelEUCalculator({ onResultCalculated }: FuelEUCalculatorProps =
             <CardTitle>FuelEU Maritime Results</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="space-y-4">
+            <div className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                 <div className="space-y-1">
                   <div className="text-sm text-muted-foreground">GHG Intensity</div>
@@ -226,6 +262,18 @@ export function FuelEUCalculator({ onResultCalculated }: FuelEUCalculatorProps =
                   </div>
                 </div>
               </div>
+
+              {recommendation && (
+                <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
+                  <h4 className="font-semibold text-green-900 flex items-center gap-2">
+                    <Zap className="h-4 w-4" />
+                    Optimization Recommendation
+                  </h4>
+                  <p className="text-green-800 mt-2">
+                    {recommendation.message}
+                  </p>
+                </div>
+              )}
             </div>
           </CardContent>
         </Card>

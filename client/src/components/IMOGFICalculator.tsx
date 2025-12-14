@@ -5,14 +5,17 @@ import { imoGFIInputSchema, type IMOGFIInput } from "@shared/schema";
 import { calculateIMOGFI } from "@/lib/calculations";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
+import { LockableInput } from "@/components/ui/lockable-input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Zap } from "lucide-react";
 
-export function IMOGFICalculator({ onCalculate }: { 
-  onCalculate?: (result: ReturnType<typeof calculateIMOGFI>) => void 
+export function IMOGFICalculator({ onCalculate }: {
+  onCalculate?: (result: ReturnType<typeof calculateIMOGFI>) => void
 }) {
   const [result, setResult] = useState<ReturnType<typeof calculateIMOGFI> | null>(null);
+  const [lockedFields, setLockedFields] = useState<Record<string, boolean>>({});
+  const [recommendation, setRecommendation] = useState<{ message: string } | null>(null);
 
   const form = useForm<IMOGFIInput>({
     resolver: zodResolver(imoGFIInputSchema),
@@ -30,7 +33,42 @@ export function IMOGFICalculator({ onCalculate }: {
       data.year
     );
     setResult(calculationResult);
+    setRecommendation(null);
     onCalculate?.(calculationResult);
+  };
+
+  const handleOptimize = () => {
+    if (!result || result.compliance === 'surplus') return;
+
+    // Target: Base Target (Tier 1 threshold) or Direct Target (Tier 2 threshold)?
+    // Usually we want to at least reach the Base Target to avoid Tier 2 penalty.
+    // Better yet, reach Direct Target to avoid ANY penalty.
+
+    // Attained = GHG / Energy * 1000
+    // Target = DirectTarget (gCO2/MJ)
+    // Required GHG = Target * Energy / 1000
+
+    const isGHGLocked = lockedFields["ghgEmissions"];
+    const isEnergyLocked = lockedFields["totalEnergyUsed"];
+
+    if (isGHGLocked) {
+      setRecommendation({ message: "GHG Emissions input is locked. Cannot optimize emissions. Unlock to calculate required reduction." });
+      return;
+    }
+
+    const currentEnergy = form.getValues().totalEnergyUsed;
+    const targetIntensity = result.directTarget; // Aim for full compliance
+
+    // New Max Emissions
+    const maxEmissions = (targetIntensity * currentEnergy) / 1000;
+
+    form.setValue("ghgEmissions", Number(maxEmissions.toFixed(0))); // integer gCO2 approximation
+    setRecommendation({
+      message: `Limited GHG Emissions to ${maxEmissions.toLocaleString(undefined, { maximumFractionDigits: 0 })} gCO₂eq to meet the Direct Target.`
+    });
+
+    // Trigger update
+    onSubmit({ ...form.getValues(), ghgEmissions: maxEmissions });
   };
 
   return (
@@ -51,12 +89,15 @@ export function IMOGFICalculator({ onCalculate }: {
                 <FormItem>
                   <FormLabel>Total Energy Used (MJ)</FormLabel>
                   <FormControl>
-                    <Input
+                    <LockableInput
                       type="number"
                       placeholder="e.g., 404000000"
                       data-testid="input-total-energy"
                       {...field}
+                      value={field.value || 0}
                       onChange={(e) => field.onChange(parseFloat(e.target.value))}
+                      isLocked={lockedFields["totalEnergyUsed"]}
+                      onLockChange={(locked) => setLockedFields(prev => ({ ...prev, totalEnergyUsed: locked }))}
                     />
                   </FormControl>
                   <FormMessage />
@@ -71,12 +112,15 @@ export function IMOGFICalculator({ onCalculate }: {
                 <FormItem>
                   <FormLabel>Total GHG Emissions (gCO₂eq)</FormLabel>
                   <FormControl>
-                    <Input
+                    <LockableInput
                       type="number"
                       placeholder="e.g., 36764000000"
                       data-testid="input-ghg-emissions"
                       {...field}
+                      value={field.value || 0}
                       onChange={(e) => field.onChange(parseFloat(e.target.value))}
+                      isLocked={lockedFields["ghgEmissions"]}
+                      onLockChange={(locked) => setLockedFields(prev => ({ ...prev, ghgEmissions: locked }))}
                     />
                   </FormControl>
                   <FormMessage />
@@ -91,13 +135,12 @@ export function IMOGFICalculator({ onCalculate }: {
                 <FormItem>
                   <FormLabel>Compliance Year</FormLabel>
                   <FormControl>
-                    <Input
+                    <LockableInput
                       type="number"
                       placeholder="2028"
-                      min={2028}
-                      max={2050}
                       data-testid="input-year"
                       {...field}
+                      value={field.value || 2028}
                       onChange={(e) => field.onChange(parseInt(e.target.value))}
                     />
                   </FormControl>
@@ -109,6 +152,19 @@ export function IMOGFICalculator({ onCalculate }: {
             <Button type="submit" className="w-full" data-testid="button-calculate-gfi">
               Calculate IMO GFI Compliance
             </Button>
+
+            {result && result.compliance !== 'surplus' && (
+              <Button
+                type="button"
+                variant="secondary"
+                className="w-full mt-2"
+                onClick={handleOptimize}
+                data-testid="button-optimize-gfi"
+              >
+                <Zap className="mr-2 h-4 w-4" />
+                Optimize Unlocked Inputs
+              </Button>
+            )}
           </form>
         </Form>
 
@@ -118,19 +174,19 @@ export function IMOGFICalculator({ onCalculate }: {
               <h3 className="text-lg font-semibold">Results</h3>
               <Badge
                 variant={
-                  result.compliance === 'surplus' 
-                    ? 'default' 
+                  result.compliance === 'surplus'
+                    ? 'default'
                     : result.compliance === 'tier1'
-                    ? 'secondary'
-                    : 'destructive'
+                      ? 'secondary'
+                      : 'destructive'
                 }
                 data-testid="badge-compliance-status"
               >
-                {result.compliance === 'surplus' 
-                  ? 'Surplus' 
+                {result.compliance === 'surplus'
+                  ? 'Surplus'
                   : result.compliance === 'tier1'
-                  ? 'Tier 1 Deficit'
-                  : 'Tier 2 Deficit'}
+                    ? 'Tier 1 Deficit'
+                    : 'Tier 2 Deficit'}
               </Badge>
             </div>
 
@@ -170,7 +226,7 @@ export function IMOGFICalculator({ onCalculate }: {
               {(result.tier1Deficit > 0 || result.tier2Deficit > 0) && (
                 <div className="border-t pt-4 space-y-3">
                   <h4 className="font-semibold">Penalty Breakdown</h4>
-                  
+
                   {result.tier1Deficit > 0 && (
                     <div className="flex justify-between items-center">
                       <div>
@@ -210,7 +266,17 @@ export function IMOGFICalculator({ onCalculate }: {
             </div>
           </div>
         )}
+
+        {recommendation && (
+          <div className="mt-6 p-4 bg-green-50 border border-green-200 rounded-lg">
+            <h4 className="font-semibold text-green-900 flex items-center gap-2">
+              <Zap className="h-4 w-4" />
+              Optimization Result
+            </h4>
+            <p className="text-green-800 mt-2">{recommendation.message}</p>
+          </div>
+        )}
       </CardContent>
-    </Card>
+    </Card >
   );
 }

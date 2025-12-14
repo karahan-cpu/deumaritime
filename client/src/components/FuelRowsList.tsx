@@ -1,7 +1,7 @@
 import { fuelTypes } from "@shared/schema";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { Input } from "@/components/ui/input";
+import { LockableInput } from "@/components/ui/lockable-input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 export interface FuelRow { fuelType: string; tons: number }
@@ -47,8 +47,13 @@ export function FuelRowsList({ value, onChange, title }: {
           </div>
           <div className="sm:col-span-5 space-y-1">
             <Label>Consumption (tons)</Label>
-            <Input type="number" step="0.01" placeholder="e.g., 20000" value={row.tons ?? 0}
-              onChange={(e) => updateRow(idx, { tons: parseFloat(e.target.value) })} />
+            <LockableInput
+              type="number"
+              step="0.01"
+              placeholder="e.g., 20000"
+              value={row.tons ?? 0}
+              onChange={(e) => updateRow(idx, { tons: parseFloat(e.target.value) })}
+            />
           </div>
           <div className="sm:col-span-2">
             <Button type="button" variant="destructive" className="w-full" onClick={() => removeRow(idx)}>Remove</Button>

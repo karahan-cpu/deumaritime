@@ -1,7 +1,7 @@
 import { fuelTypes, type EngineRow } from "@shared/schema";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { Input } from "@/components/ui/input";
+import { LockableInput } from "@/components/ui/lockable-input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 export function EngineRowsList({ value, onChange, title }: {
@@ -45,31 +45,29 @@ export function EngineRowsList({ value, onChange, title }: {
         <div key={idx} className="grid grid-cols-1 sm:grid-cols-12 gap-3 items-end">
           <div className="sm:col-span-4 space-y-1">
             <Label>Power (kW MCR) *</Label>
-            <Input 
-              type="number" 
-              step="0.01" 
-              placeholder="e.g., 12500" 
+            <LockableInput
+              type="number"
+              step="100"
+              placeholder="e.g., 12500"
               value={row.power ?? 0}
               onChange={(e) => {
                 const val = e.target.value === '' ? 0 : parseFloat(e.target.value);
                 updateRow(idx, { power: isNaN(val) ? 0 : Math.max(0, val) });
               }}
-              min="0"
             />
             <p className="text-xs text-muted-foreground">Maximum Continuous Rating</p>
           </div>
           <div className="sm:col-span-3 space-y-1">
             <Label>SFC (g/kWh) *</Label>
-            <Input 
-              type="number" 
-              step="0.01" 
-              placeholder="e.g., 190" 
+            <LockableInput
+              type="number"
+              step="1"
+              placeholder="e.g., 190"
               value={row.sfc ?? 190}
               onChange={(e) => {
                 const val = e.target.value === '' ? 190 : parseFloat(e.target.value);
                 updateRow(idx, { sfc: isNaN(val) || val <= 0 ? 190 : val });
               }}
-              min="0.01"
             />
             <p className="text-xs text-muted-foreground">At reference load</p>
           </div>
@@ -91,8 +89,7 @@ export function EngineRowsList({ value, onChange, title }: {
           </div>
         </div>
       ))}
-              <Button type="button" variant="ghost" onClick={addRow}>+ Add engine</Button>
+      <Button type="button" variant="ghost" onClick={addRow}>+ Add engine</Button>
     </div>
   );
 }
-

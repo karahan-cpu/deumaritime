@@ -2,12 +2,12 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { eexiInputSchema, type EEXIInput, type EngineRow } from "@shared/schema";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { LockableInput } from "@/components/ui/lockable-input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
-import { FileText } from "lucide-react";
+import { FileText, Zap } from "lucide-react";
 import { useState } from "react";
 import { calculateEEXIFromEngines, calculateRequiredEEXI } from "@/lib/calculations";
 import { ComplianceBadge } from "./ComplianceBadge";
@@ -26,6 +26,8 @@ export function EEXICalculator({ shipType, yearBuilt, onResultCalculated }: EEXI
     compliant: boolean;
   } | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [recommendation, setRecommendation] = useState<{ message: string, value?: number } | null>(null);
+  const [lockedFields, setLockedFields] = useState<Record<string, boolean>>({});
 
   const form = useForm<EEXIInput>({
     resolver: zodResolver(eexiInputSchema),
@@ -42,14 +44,18 @@ export function EEXICalculator({ shipType, yearBuilt, onResultCalculated }: EEXI
   const mainEngines = (form.watch("mainEngines") as EngineRow[]) || [];
   const auxiliaryEngines = (form.watch("auxiliaryEngines") as EngineRow[]) || [];
 
+  // Watch values
+  const speed = form.watch("speed");
+  const capacity = form.watch("capacity");
+
   const handleCalculate = (data: EEXIInput) => {
-    setError(null); // Clear previous errors
-    setResult(null); // Clear previous results
+    setError(null);
+    setResult(null);
+    setRecommendation(null);
 
     const mainEnginesList = (data.mainEngines as EngineRow[]) || [];
     const auxiliaryEnginesList = (data.auxiliaryEngines as EngineRow[]) || [];
 
-    // Check if there's at least one engine with valid power
     const hasValidMainEngine = mainEnginesList.some(e => e.power > 0 && e.sfc > 0);
     const hasValidAuxEngine = auxiliaryEnginesList.some(e => e.power > 0 && e.sfc > 0);
 
@@ -85,27 +91,77 @@ export function EEXICalculator({ shipType, yearBuilt, onResultCalculated }: EEXI
 
       const calculatedResult = { attained, required, compliant };
 
-      // Debug logging (can be removed in production)
-      console.log("EEXI Calculation:", {
-        mainEngines: mainEnginesList.length,
-        auxiliaryEngines: auxiliaryEnginesList.length,
-        speed: data.speed,
-        capacity: data.capacity,
-        hasEPL: data.hasEPL,
-        attained,
-        required,
-        compliant,
-      });
-
       setResult(calculatedResult);
-      setError(null); // Clear any previous errors on success
+      setError(null);
       if (onResultCalculated) onResultCalculated(calculatedResult);
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Unknown calculation error';
       setError(errorMessage);
-      setResult(null); // Clear results on error
+      setResult(null);
       console.error("EEXI calculation error:", err);
     }
+  };
+
+  const handleOptimize = () => {
+    if (!result || result.compliant) return;
+
+    // 1. Suggest EPL if not locked and not enabled
+    // Note: We don't have a "Lock" UI for the switch, but we could add one.
+    // For now, checks if speed is locked.
+
+    // If speed is locked, we can't optimize speed.
+    // If EPL is off, we can suggest EPL.
+    const isSpeedLocked = lockedFields["speed"];
+    const hasEPL = form.getValues().hasEPL;
+
+    // If speed is locked and EPL is already on (or we don't want to force it), we can't do much.
+    // But if EPL is off, we can suggest it regardless of speed lock, as it's a separate lever?
+    // User asked to "optimize unlocked inputs". 
+    // Let's assume enabling EPL is "unlocking" a new lever. 
+    // But usually EPL is a retrofit decision.
+
+    if (!hasEPL) {
+      // Just suggest EPL first
+      setRecommendation({
+        message: "Consider enabling Engine Power Limitation (EPL). This will apply an 83% derating factor to your main engines."
+      });
+      return;
+    }
+
+    if (isSpeedLocked) {
+      setRecommendation({
+        message: "Speed input is locked. Cannot optimize speed. Please unlock Reference Speed to calculate required reduction."
+      });
+      return;
+    }
+
+    // If EPL is already on (or user ignored it), suggest speed reduction
+    let low = 0;
+    let high = form.getValues().speed;
+    let optimal = high;
+
+    for (let i = 0; i < 20; i++) {
+      const mid = (low + high) / 2;
+      const attained = calculateEEXIFromEngines(
+        mainEngines,
+        auxiliaryEngines,
+        mid,
+        // @ts-ignore
+        form.getValues().capacity,
+        true // assume EPL is kept on or we forced it
+      );
+
+      if (attained <= result.required) {
+        optimal = mid;
+        low = mid;
+      } else {
+        high = mid;
+      }
+    }
+    setRecommendation({
+      message: `Limit reference speed to ${optimal.toFixed(2)} knots to achieve compliance.`,
+      value: optimal
+    });
   };
 
   return (
@@ -130,7 +186,7 @@ export function EEXICalculator({ shipType, yearBuilt, onResultCalculated }: EEXI
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-2">
                 <Label htmlFor="speed">Reference Speed (knots) *</Label>
-                <Input
+                <LockableInput
                   id="speed"
                   type="number"
                   step="0.01"
@@ -139,9 +195,11 @@ export function EEXICalculator({ shipType, yearBuilt, onResultCalculated }: EEXI
                     required: "Reference speed is required",
                     min: { value: 0.01, message: "Speed must be greater than 0" }
                   })}
+                  value={speed || ""}
                   placeholder="e.g., 14.5"
-                  min="0.01"
                   onFocus={(e) => e.target.select()}
+                  isLocked={lockedFields["speed"]}
+                  onLockChange={(locked) => setLockedFields(prev => ({ ...prev, speed: locked }))}
                 />
                 {form.formState.errors.speed && (
                   <p className="text-sm text-destructive">{form.formState.errors.speed.message}</p>
@@ -149,7 +207,7 @@ export function EEXICalculator({ shipType, yearBuilt, onResultCalculated }: EEXI
               </div>
               <div className="space-y-2">
                 <Label htmlFor="capacity">Capacity (DWT) *</Label>
-                <Input
+                <LockableInput
                   id="capacity"
                   type="number"
                   step="0.01"
@@ -158,9 +216,11 @@ export function EEXICalculator({ shipType, yearBuilt, onResultCalculated }: EEXI
                     required: "Capacity is required",
                     min: { value: 0.01, message: "Capacity must be greater than 0" }
                   })}
+                  value={capacity || ""}
                   placeholder="e.g., 85000"
-                  min="0.01"
                   onFocus={(e) => e.target.select()}
+                  isLocked={lockedFields["capacity"]}
+                  onLockChange={(locked) => setLockedFields(prev => ({ ...prev, capacity: locked }))}
                 />
                 {form.formState.errors.capacity && (
                   <p className="text-sm text-destructive">{form.formState.errors.capacity.message}</p>
@@ -198,19 +258,32 @@ export function EEXICalculator({ shipType, yearBuilt, onResultCalculated }: EEXI
               </div>
             )}
 
-            <Button
-              type="submit"
-              className="w-full"
-              data-testid="button-calculate-eexi"
-              disabled={
-                (mainEngines.length === 0 && auxiliaryEngines.length === 0) ||
-                (!mainEngines.some(e => e.power > 0 && e.sfc > 0) && !auxiliaryEngines.some(e => e.power > 0 && e.sfc > 0)) ||
-                !form.watch("speed") || form.watch("speed") <= 0 ||
-                !form.watch("capacity") || form.watch("capacity") <= 0
-              }
-            >
-              Calculate EEXI
-            </Button>
+            <div className="flex gap-4">
+              <Button
+                type="submit"
+                className="flex-1"
+                data-testid="button-calculate-eexi"
+                disabled={
+                  (mainEngines.length === 0 && auxiliaryEngines.length === 0) ||
+                  (!mainEngines.some(e => e.power > 0 && e.sfc > 0) && !auxiliaryEngines.some(e => e.power > 0 && e.sfc > 0)) ||
+                  !form.watch("speed") || form.watch("speed") <= 0 ||
+                  !form.watch("capacity") || form.watch("capacity") <= 0
+                }
+              >
+                Calculate EEXI
+              </Button>
+              {result && !result.compliant && (
+                <Button
+                  type="button"
+                  variant="secondary"
+                  className="flex-1"
+                  onClick={handleOptimize}
+                >
+                  <Zap className="mr-2 h-4 w-4" />
+                  Optimize Unlocked Inputs
+                </Button>
+              )}
+            </div>
           </form>
         </CardContent>
       </Card>
@@ -221,7 +294,7 @@ export function EEXICalculator({ shipType, yearBuilt, onResultCalculated }: EEXI
             <CardTitle>EEXI Results</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="space-y-4">
+            <div className="space-y-6">
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
                 <div>
                   <div className="text-sm text-muted-foreground">Attained EEXI</div>
@@ -240,6 +313,18 @@ export function EEXICalculator({ shipType, yearBuilt, onResultCalculated }: EEXI
                   </div>
                 </div>
               </div>
+
+              {recommendation && (
+                <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
+                  <h4 className="font-semibold text-green-900 flex items-center gap-2">
+                    <Zap className="h-4 w-4" />
+                    Optimization Recommendation
+                  </h4>
+                  <p className="text-green-800 mt-2">
+                    {recommendation.message}
+                  </p>
+                </div>
+              )}
             </div>
           </CardContent>
         </Card>
