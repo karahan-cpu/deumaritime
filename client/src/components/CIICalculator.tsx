@@ -148,27 +148,14 @@ export function CIICalculator() {
       optimizationMessage = `Reduced Annual Fuel Consumption to ${newFuel.toFixed(1)} MT to achieve Rating C.`;
     } else if (!isDistanceLocked) {
       // Optimize Distance
+      // To improve CII (lower it), we need to increase the distance traveled (denominator) if fuel is fixed.
+      // NewDist = CurrentDist * (CurrentCII / TargetCII)
+
       const currentDist = parseFloat(data.distance);
-      // To IMPROVE CII (lower it), we need MORE distance for same fuel (efficiency) OR LESS fuel.
-      // Formula: CII = Em / (Cap * Dist).
-      // Lower CII -> Higher Dist.
-      // So asking to "increase distance" to be more efficient?
-      // Technially yes, moving cargo further with same fuel is more efficient per mile.
-      // But usually optimization implies reducing speed/consumption.
-      // If Fuel is locked (e.g. fixed allocation), and we want better rating?
-      // We must increase distance? That seems counter-intuitive for a retrofit.
-      // "Optimize" usually means "Reduce Emissions".
-      // If Fuel is locked, we can't reduce emissions.
-      // If Lock means "Fixed value", then we are stuck.
+      const newDist = currentDist * (result.ciScore / targetCII);
 
-      // EXCEPT: If we change Fuel TYPE. But Fuel Type input doesn't have a lock UI here (select).
-      // Let's just stick to Fuel Consumption optimization as primary.
-      // If Fuel is locked, warn user.
-
-      setRecommendation({
-        message: "Fuel Consumption is locked. Unlocking it allows calculating the required consumption limit for compliance."
-      });
-      return;
+      form.setValue("distance", newDist.toFixed(1));
+      optimizationMessage = `Increased Annual Distance to ${newDist.toFixed(1)} nm to achieve Rating C.`;
     }
 
     setRecommendation({
