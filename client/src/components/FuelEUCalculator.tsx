@@ -22,6 +22,8 @@ export function FuelEUCalculator({ onResultCalculated }: FuelEUCalculatorProps =
     limit: number;
     penalty: number;
     compliance: boolean;
+    complianceBalance: number;
+    deficit: number;
   } | null>(null);
   const [recommendation, setRecommendation] = useState<{ message: string, impact: string } | null>(null);
 
@@ -104,7 +106,7 @@ export function FuelEUCalculator({ onResultCalculated }: FuelEUCalculatorProps =
               </div>
               <div>
                 <CardTitle>FuelEU Maritime Calculator</CardTitle>
-                <CardDescription>GHG intensity limits and penalty estimation (2025-2050)</CardDescription>
+                <CardDescription>GHG intensity limits, compliance balance, and penalty (2025-2050)</CardDescription>
               </div>
             </div>
             <Badge variant="secondary" className="text-xs uppercase">Well-to-Wake</Badge>
@@ -249,18 +251,26 @@ export function FuelEUCalculator({ onResultCalculated }: FuelEUCalculatorProps =
                   <div className="text-xs text-muted-foreground">gCO₂eq/MJ</div>
                 </div>
                 <div className="space-y-1">
-                  <div className="text-sm text-muted-foreground">Penalty Cost</div>
-                  <div className="text-2xl font-bold font-mono text-destructive">
-                    €{result.penalty.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                  <div className="text-sm text-muted-foreground">{result.compliance ? "Surplus Balance" : "Deficit (Penalty)"}</div>
+                  <div className={`text-2xl font-bold font-mono ${result.compliance ? "text-green-600" : "text-destructive"}`}>
+                    {result.compliance ? "+" : "-"}{Math.abs(result.complianceBalance / 1000000).toLocaleString(undefined, { maximumFractionDigits: 2 })}
                   </div>
-                  <div className="text-xs text-muted-foreground">If non-compliant</div>
+                  <div className="text-xs text-muted-foreground">tonnes CO₂eq</div>
                 </div>
                 <div className="space-y-1">
-                  <div className="text-sm text-muted-foreground">Status</div>
-                  <div className="mt-2">
-                    <ComplianceBadge status={result.compliance ? "compliant" : "non-compliant"} />
+                  <div className="text-sm text-muted-foreground">Financial Impact</div>
+                  <div className={`text-2xl font-bold font-mono ${result.penalty > 0 ? "text-destructive" : "text-slate-900"}`}>
+                    €{result.penalty.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                  </div>
+                  <div className="text-xs text-muted-foreground">
+                    {result.penalty > 0 ? "Penalty due" : "No penalty"}
                   </div>
                 </div>
+              </div>
+
+              <div className="flex items-center gap-2 mt-2">
+                <div className="text-sm font-medium">Compliance Status:</div>
+                <ComplianceBadge status={result.compliance ? "compliant" : "non-compliant"} />
               </div>
 
               {recommendation && (

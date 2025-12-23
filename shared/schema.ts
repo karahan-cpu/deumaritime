@@ -14,17 +14,17 @@ export const shipTypes = [
 ] as const;
 
 export const fuelTypes = [
-  { value: "HFO", label: "Heavy Fuel Oil (HFO)", cf: 3.114 },
-  { value: "MDO", label: "Marine Diesel Oil (MDO)", cf: 3.206 },
-  { value: "MGO", label: "Marine Gas Oil (MGO)", cf: 3.206 },
-  { value: "LNG", label: "Liquefied Natural Gas (LNG)", cf: 2.750 },
-  { value: "Methanol", label: "Methanol", cf: 1.375 },
-  { value: "Ammonia", label: "Ammonia", cf: 0 },
-  { value: "LPG", label: "Liquefied Petroleum Gas (LPG)", cf: 3.000 },
-  { value: "B100", label: "Biodiesel (B100)", cf: 0 },
-  { value: "B50", label: "Biodiesel Blend (B50)", cf: 1.603 },
-  { value: "B30", label: "Biodiesel Blend (B30)", cf: 2.244 },
-  { value: "B24", label: "Biodiesel Blend (B24)", cf: 2.437 },
+  // LCV (MJ/g), WtT (gCO2eq/MJ), TtW factors (g/g_fuel)
+  { value: "HFO", label: "Heavy Fuel Oil (HFO)", lcv: 0.0405, wtt: 13.5, ttw_co2: 3.114, ttw_ch4: 0.00005, ttw_n2o: 0.00018 },
+  { value: "MDO", label: "Marine Diesel Oil (MDO)", lcv: 0.0427, wtt: 14.1, ttw_co2: 3.206, ttw_ch4: 0.00005, ttw_n2o: 0.00018 },
+  { value: "MGO", label: "Marine Gas Oil (MGO)", lcv: 0.0427, wtt: 14.1, ttw_co2: 3.206, ttw_ch4: 0.00005, ttw_n2o: 0.00018 },
+  { value: "LNG", label: "Liquefied Natural Gas (LNG) - Otto", lcv: 0.0500, wtt: 18.5, ttw_co2: 2.750, ttw_ch4: 0.0, ttw_n2o: 0.00011, slip_percent: 3.1 }, // Otto cycle (high slip)
+  { value: "LNG_Diesel", label: "Liquefied Natural Gas (LNG) - Diesel", lcv: 0.0500, wtt: 18.5, ttw_co2: 2.750, ttw_ch4: 0.0, ttw_n2o: 0.00011, slip_percent: 0.2 }, // Diesel cycle (low slip)
+  { value: "Methanol", label: "Methanol (fossil)", lcv: 0.0199, wtt: 30.0, ttw_co2: 1.375, ttw_ch4: 0.0, ttw_n2o: 0.0 }, // Fossil methanol high WtT
+  { value: "Ammonia", label: "Ammonia (fossil)", lcv: 0.0186, wtt: 120.0, ttw_co2: 0, ttw_ch4: 0.0, ttw_n2o: 0.0, ttw_n2o_slip: 0.03 }, // High WtT for grey ammonia
+  { value: "LPG", label: "Liquefied Petroleum Gas (LPG)", lcv: 0.0460, wtt: 7.8, ttw_co2: 3.000, ttw_ch4: 0.00005, ttw_n2o: 0.00018 },
+  { value: "B100", label: "Biodiesel (B100)", lcv: 0.0370, wtt: 5.0, ttw_co2: 2.8, ttw_ch4: 0.0, ttw_n2o: 0.0 }, // Simplified bio-factor (CO2 neutral in TtW often?)
+  { value: "H2", label: "Hydrogen (Green)", lcv: 0.1200, wtt: 0.0, ttw_co2: 0, ttw_ch4: 0, ttw_n2o: 0 },
 ] as const;
 
 export const shipInfoSchema = z.object({
@@ -112,10 +112,23 @@ export const fuelEUInputSchema = z.object({
 
 export const euETSInputSchema = z.object({
   totalCO2Emissions: z.number().positive(),
-  intraEUEmissions: z.number().nonnegative(),
-  euPortEmissions: z.number().nonnegative(),
+  intra_EU_CO2: z.number().nonnegative().default(0),
+  extra_EU_CO2: z.number().nonnegative().default(0),
+  port_CO2: z.number().nonnegative().default(0),
+
+  // CH4 and N2O (Required from 2026)
+  totalCH4Emissions: z.number().nonnegative().default(0).optional(),
+  intra_EU_CH4: z.number().nonnegative().default(0).optional(),
+  extra_EU_CH4: z.number().nonnegative().default(0).optional(),
+  port_CH4: z.number().nonnegative().default(0).optional(),
+
+  totalN2OEmissions: z.number().nonnegative().default(0).optional(),
+  intra_EU_N2O: z.number().nonnegative().default(0).optional(),
+  extra_EU_N2O: z.number().nonnegative().default(0).optional(),
+  port_N2O: z.number().nonnegative().default(0).optional(),
+
   carbonPrice: z.number().positive(),
-  year: z.number().min(2024).max(2026),
+  year: z.number().min(2024).max(2030),
 });
 
 export const imoGFIInputSchema = z.object({
